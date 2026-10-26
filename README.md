@@ -29,11 +29,23 @@
 
 高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
 
-### 安装
+### 首次安装
 
-将仓库克隆到 Agent 能读取的 Skills 目录。以 Codex 为例：
+通常只需安装一次；之后直接调用 `$ssh-proxy-node-deployer`。
 
-**Windows PowerShell**
+**Codex：把这段发给 Agent 安装**
+
+```text
+$skill-installer 请从 GitHub 仓库 0verme/ssh-proxy-node-deployer 的仓库根目录安装 Skill；入口文件是 SKILL.md，Skill 名称为 ssh-proxy-node-deployer。如果同名 Skill 已存在，先告诉我更新方式，不要覆盖。
+```
+
+安装完成后，在下一轮调用 `$ssh-proxy-node-deployer`。
+
+**其他 Agent：** 如果平台支持从 GitHub 安装 Skill，就让它安装仓库根目录的 `SKILL.md`。如果只是本次使用，也可以让 Agent 读取 [SKILL.md](https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md) 并在当前任务中遵循；这种方式不会持久安装。
+
+**手动备用方式（Codex）**
+
+Windows PowerShell：
 
 ```powershell
 $skills = Join-Path $HOME ".codex\skills"
@@ -41,14 +53,14 @@ New-Item -ItemType Directory -Force $skills | Out-Null
 git clone https://github.com/0verme/ssh-proxy-node-deployer.git (Join-Path $skills "ssh-proxy-node-deployer")
 ```
 
-**macOS / Linux**
+macOS / Linux：
 
 ```bash
 mkdir -p ~/.codex/skills
 git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/ssh-proxy-node-deployer
 ```
 
-如果你的 Agent 使用不同的 Skills 目录，请把仓库放进它实际扫描的目录。重新加载或重启 Agent 后即可调用。
+如果你的 Agent 使用不同的 Skills 目录，请放入它实际扫描的目录。安装后可能需要重新加载 Agent。
 
 ### 给 Agent 的提示词
 
@@ -111,16 +123,28 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 
 High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
 
-### Install
+### First-time setup
 
-Clone this repository into a Skills directory scanned by your agent. For Codex:
+You usually install the Skill once, then call `$ssh-proxy-node-deployer` in later tasks.
+
+**Codex: send this prompt to your agent**
+
+```text
+$skill-installer Install the Skill from the root of the GitHub repository 0verme/ssh-proxy-node-deployer. The entrypoint is SKILL.md and the Skill name is ssh-proxy-node-deployer. If a Skill with that name already exists, tell me how to update it; do not overwrite it.
+```
+
+After installation, invoke `$ssh-proxy-node-deployer` on your next turn.
+
+**Other agents:** If your platform supports installing Skills from GitHub, ask it to install the root `SKILL.md`. For a one-time task, you can ask the agent to read [SKILL.md](https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md) and follow it for the current task; this does not install it persistently.
+
+**Manual fallback for Codex**
 
 ```bash
 mkdir -p ~/.codex/skills
 git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/ssh-proxy-node-deployer
 ```
 
-On Windows, the same repository can be cloned into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. If your agent uses another Skills directory, use its configured path. Reload or restart the agent to discover the Skill.
+On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. If your agent scans a different Skills directory, use that configured path. Reload the agent if needed.
 
 ### Prompt your agent
 
