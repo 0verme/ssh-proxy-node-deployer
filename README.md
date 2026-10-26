@@ -24,7 +24,7 @@
 - 部署前从实际使用的客户端网络直测 SSH `22/TCP`（或你指定的 SSH 端口），不走 SSH 跳板或应用层代理。失败只说明当前测试位置无法直连，不能单凭一次失败断定 IP 被封；会先停止部署并报告可能原因，不会自动换 IP 或切换代理。
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
-- 默认生成 Shadowrocket 链接和 Clash Verge / Mihomo 配置，保存在仓库之外的私有目录。
+- 问答时询问你使用的客户端（可多选），只生成相应且受支持的配置格式；客户端文件保存在仓库之外的私有目录。
 - 默认保留现有 SSH 登录方式、主机防火墙策略和其他服务；不重启整台机器。sing-box API / Dashboard 和第三方面板默认关闭；节点转发不依赖管理页，低配机器建议保持关闭。
 - **默认不下载、不运行融合怪。** 只有高手模式明确要求测速或机器评测时才运行；新手模式始终跳过。完整测试可能增加 CPU、磁盘负载和流量。
 
@@ -111,10 +111,13 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 
 **不要把密码粘贴到聊天里。**如果当前 Agent 没有安全交互式终端，改用手动密钥配置，或先配置好 SSH 后选择高手模式。
 
+新手和高手模式都会在生成配置前询问你使用什么客户端，可多选：Shadowrocket、Clash Verge / Mihomo、sing-box、v2rayN 或其他客户端。如果不确定，告诉 Agent 你的设备系统，让它根据当前兼容性推荐并等你确认。
+
 ```text
 使用 ssh-proxy-node-deployer Skill，在我有权管理的 VPS 上部署自用节点。
 开始前先问我选择“新手模式”或“高手模式”；如果我已经选过，就不要重复问。
 选择后只询问该模式需要的连接信息：新手模式询问服务器地址、用户名和 SSH 端口；高手模式询问已有 SSH Host 别名或目标。
+生成客户端配置前，询问我使用什么客户端（可多选：Shadowrocket、Clash Verge / Mihomo、sing-box、v2rayN 或其他客户端）。如果我不确定，先问设备系统，核实兼容性后给我建议并等待确认；只生成我选择的客户端格式。
 在任何密码输入前，从我实际使用的客户端网络直测指定的 SSH 端口（默认 22/TCP），不走 SSH 跳板或应用层代理；如果指定端口不是 22，也单独测试 22/TCP。如果你无法从我的客户端网络测试，先给我本机测试命令并等待结果。测试失败时不要直接说 IP 被封，先停止部署并报告原因，不要自动切换代理或更换 IP。
 新手模式：直连检查通过后，只能通过安全交互式终端向我请求服务器密码；用它为现有用户创建并追加本地专用 Ed25519 公钥（不要覆盖服务器已有 authorized_keys），验证密钥登录，并在本机 ~/.ssh/config 新增包含服务器、用户名、端口和密钥路径的不冲突 SSH 别名。不得保存密码或覆盖已有本地密钥，也不得创建服务器账户、改 SSH 服务配置或关闭密码登录。
 高手模式：复用我提供的已配置 SSH Host 别名、密钥或 SSH Agent；不问服务器密码，不新建或上传密钥。
@@ -158,7 +161,6 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 | `third-party-panel` | 第三方面板 | 请同时写出面板名称；先检查资源、安装来源和访问安全。 |
 | `private-subscription` | 私有 HTTPS 订阅 | 需保持访问受控，不放入公开仓库或网页。 |
 | `qr-code` | 客户端配置二维码 | 二维码包含连接凭据，按私密配置文件同等保护。 |
-| `client-format-sing-box` / `client-format-v2rayn` | 额外导出对应客户端格式 | 默认仍提供 Shadowrocket 和 Clash Verge / Mihomo 配置。 |
 
 ### 图片与实际测试
 
@@ -184,7 +186,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - Before deployment, test SSH TCP/22 (or the specified SSH port) directly from the actual client network, without an SSH jump host or application proxy. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
-- Generate Shadowrocket links and a Clash Verge / Mihomo profile by default. Keep client files in a private directory outside the repository.
+- Ask which client app(s) the user uses; generate only the corresponding supported profile format(s). Keep client files in a private directory outside the repository.
 - Preserve existing SSH access, host firewall policy, and unrelated services. Do not reboot the VPS. Keep the sing-box API / Dashboard and third-party panels disabled by default; node traffic does not depend on a management page, and low-resource hosts should normally leave it off.
 - **Fusion Monster is off by default.** Run it only when explicitly requested in Expert mode; Beginner mode always skips it. A full benchmark can use CPU, disk, and network bandwidth.
 
@@ -261,7 +263,7 @@ Which connection mode do you want?
 2. Expert mode: SSH is already configured; reuse it directly.
 ```
 
-Then it follows the selected mode:
+Then it follows the selected mode and asks which client app(s) you use before generating files. You can choose more than one: Shadowrocket, Clash Verge / Mihomo, sing-box, v2rayN, or another named client. If you are unsure, tell the agent your device operating system so it can check compatibility, recommend an option, and wait for your confirmation.
 
 - **Beginner mode:** provide the server address, SSH username, and port. After the direct-connect check, enter the server password only in the agent's secure interactive terminal. The agent creates a dedicated local SSH key, appends its public key for the existing account without replacing existing keys, verifies key login, and adds a local `~/.ssh/config` alias. The password is not saved. Beginner mode uses only the default basic features and does not ask about advanced options.
 - **Expert mode:** provide an existing SSH Host alias or configured target. The agent reuses the current SSH key / SSH agent, asks for no password, and creates or uploads no key. Only expert mode asks about advanced settings.
@@ -274,6 +276,10 @@ or am authorized to administer.
 First ask me to choose Beginner mode or Expert mode, unless I already chose.
 After I choose, ask only for that mode's connection details: server address,
 username, and SSH port for Beginner mode; existing SSH Host alias or target for Expert mode.
+Before generating client files, ask which client app(s) I use. I may choose
+multiple: Shadowrocket, Clash Verge / Mihomo, sing-box, v2rayN, or another named
+client. If I am unsure, ask my device operating system, check current compatibility,
+recommend an option, and wait for my confirmation. Generate only the selected formats.
 Before any password entry, test the configured SSH port directly from the client
 network I will use, without an SSH jump host or application proxy. If the configured
 port is not 22, test TCP/22 separately. If you cannot test from that network, give
@@ -333,7 +339,6 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 | `third-party-panel` | A third-party panel | Name the panel; check resources, installation source, and access security first. |
 | `private-subscription` | Private HTTPS subscription | Keep access controlled and out of public repositories and pages. |
 | `qr-code` | Client configuration QR codes | QR codes contain credentials; protect them like private client files. |
-| `client-format-sing-box` / `client-format-v2rayn` | Export the additional client format | Shadowrocket and Clash Verge / Mihomo remain the defaults. |
 
 ### Screenshots and real-world validation
 
