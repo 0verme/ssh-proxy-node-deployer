@@ -64,7 +64,10 @@ nc -vz -w 5 SERVER_IP 22
 并在本次任务中遵循其中的说明。这不会安装到后续会话。
 ```
 
-**Codex 快捷方式（可选）**
+<details>
+<summary>Codex 安装与手动备用方式（可选）</summary>
+
+**Codex 快捷方式**
 
 ```text
 $skill-installer 请从 0verme/ssh-proxy-node-deployer 仓库根目录安装 Skill，入口文件为 SKILL.md，名称为 ssh-proxy-node-deployer。如果同名 Skill 已存在，先告诉我更新方式，不要覆盖。
@@ -88,6 +91,8 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 ```
 
 其他平台的持久安装目录和调用方式不同，请使用其标准 Skill 安装功能或配置的 Skills 目录。安装后可能需要重新加载 Agent。
+
+</details>
 
 ### 给 Agent 的提示词
 
@@ -191,7 +196,10 @@ Read https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL
 and follow it for this task. This does not install the Skill for future sessions.
 ```
 
-**Optional Codex shortcut**
+<details>
+<summary>Optional Codex installation and manual fallback</summary>
+
+**Codex shortcut**
 
 ```text
 $skill-installer Install the Skill from the root of 0verme/ssh-proxy-node-deployer.
@@ -207,6 +215,8 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 ```
 
 On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. Other platforms use their configured Skills directory and invocation syntax. Reload the agent if needed.
+
+</details>
 
 ### Prompt your agent
 
