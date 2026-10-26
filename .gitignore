@@ -1,0 +1,16 @@
+# Never commit generated credentials, private keys, client profiles, or test output.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+client-configs/
+subscriptions/
+outputs/
+test_result.txt
+goecs*
+*.log
+
+

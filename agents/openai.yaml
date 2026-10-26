@@ -1,0 +1,5 @@
+interface:
+  display_name: "SSH Proxy Node Deployer"
+  short_description: "Detect and deploy dual-stack proxy nodes on VPS servers"
+  default_prompt: "使用 $ssh-proxy-node-deployer，在我提供的 SSH 服务器上按默认方案部署节点并生成客户端配置。"
+

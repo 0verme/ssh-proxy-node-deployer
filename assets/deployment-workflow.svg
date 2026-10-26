@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+  <title id="title">SSH Proxy Node Deployer workflow</title>
+  <desc id="desc">Connect over SSH, inspect safely, deploy a sing-box node, and deliver private client profiles. Benchmarks are optional.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#131d32"/></linearGradient>
+    <linearGradient id="accent" x1="0" x2="1"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#818cf8"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#020617" flood-opacity=".42"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#64748b"/></marker>
+  </defs>
+  <rect width="1200" height="440" rx="28" fill="url(#bg)"/>
+  <circle cx="1090" cy="44" r="150" fill="#2563eb" opacity=".08"/>
+  <circle cx="110" cy="410" r="170" fill="#06b6d4" opacity=".06"/>
+  <text x="60" y="63" fill="#e2e8f0" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700">SSH Proxy Node Deployer</text>
+  <text x="60" y="94" fill="#94a3b8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15">A careful, provider-independent workflow for your own VPS</text>
+  <g stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"><path d="M275 219h34"/><path d="M557 219h34"/><path d="M839 219h34"/></g>
+  <g filter="url(#shadow)">
+    <rect x="54" y="137" width="220" height="164" rx="18" fill="#17243a" stroke="#334155"/>
+    <rect x="336" y="137" width="220" height="164" rx="18" fill="#17243a" stroke="#334155"/>
+    <rect x="618" y="137" width="220" height="164" rx="18" fill="#17243a" stroke="#334155"/>
+    <rect x="900" y="137" width="246" height="164" rx="18" fill="#17243a" stroke="#334155"/>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif">
+    <g transform="translate(78 163)" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="44" height="31" rx="5"/><path d="M10 18h9m-9 8h9m7-8 7 4-7 4M18 40v8m12-8v8m-15 0h18"/></g>
+    <text x="78" y="242" fill="#f1f5f9" font-size="18" font-weight="700">1 · Connect</text>
+    <text x="78" y="269" fill="#94a3b8" font-size="13">Use SSH key or secure prompt</text>
+    <text x="78" y="289" fill="#94a3b8" font-size="13">Never place passwords in chat</text>
+
+    <g transform="translate(360 163)" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="20"/><path d="M24 12v13l9 5M9 5 5 9m38-4 4 4"/></g>
+    <text x="360" y="242" fill="#f1f5f9" font-size="18" font-weight="700">2 · Inspect</text>
+    <text x="360" y="269" fill="#94a3b8" font-size="13">Check OS, routes, ports</text>
+    <text x="360" y="289" fill="#94a3b8" font-size="13">Preserve existing services</text>
+
+    <g transform="translate(642 163)" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 4 43 14v20L24 45 5 34V14z"/><path d="m5 14 19 11 19-11M24 25v20m-9-26 19 11"/></g>
+    <text x="642" y="242" fill="#f1f5f9" font-size="18" font-weight="700">3 · Deploy</text>
+    <text x="642" y="269" fill="#94a3b8" font-size="13">sing-box · REALITY · HY2</text>
+    <text x="642" y="289" fill="#94a3b8" font-size="13">High ports by default</text>
+
+    <g transform="translate(924 163)" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h25l11 11v29H8z"/><path d="M33 5v12h11M15 27h21m-21 8h21m-21 8h12"/></g>
+    <text x="924" y="242" fill="#f1f5f9" font-size="18" font-weight="700">4 · Deliver privately</text>
+    <text x="924" y="269" fill="#94a3b8" font-size="13">Client profiles outside repo</text>
+    <text x="924" y="289" fill="#94a3b8" font-size="13">Report checks and limitations</text>
+  </g>
+  <rect x="54" y="337" width="1092" height="54" rx="13" fill="#101a2a" stroke="#263449"/>
+  <circle cx="78" cy="364" r="6" fill="#fbbf24"/>
+  <text x="96" y="370" fill="#cbd5e1" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14"><tspan font-weight="700" fill="#f8fafc">Optional benchmark:</tspan> Fusion Monster runs only when you explicitly ask. Full tests may use bandwidth and system resources.</text>
+</svg>
+
+
