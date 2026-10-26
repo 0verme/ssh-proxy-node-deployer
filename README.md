@@ -26,7 +26,7 @@
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
 - 默认生成 Shadowrocket 链接和 Clash Verge / Mihomo 配置，保存在仓库之外的私有目录。
 - 默认保留现有 SSH 登录方式、主机防火墙策略和其他服务；不重启整台机器。sing-box API / Dashboard 和第三方面板默认关闭；节点转发不依赖管理页，低配机器建议保持关闭。
-- **默认不下载、不运行融合怪。** 只有你明确要求测速或机器评测时才运行；完整测试可能增加 CPU、磁盘负载和流量。
+- **默认不下载、不运行融合怪。** 只有高手模式明确要求测速或机器评测时才运行；新手模式始终跳过。完整测试可能增加 CPU、磁盘负载和流量。
 
 高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
 
@@ -96,19 +96,31 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 
 ### 给 Agent 的提示词
 
-把 SSH 地址、用户名和端口告诉 Agent；**密码不要粘贴到聊天里**。优先使用已经配置好的 SSH 密钥或 SSH Agent。若必须用密码，使用 Agent 提供的安全交互式终端输入。
+开始部署前，Agent 会先问你：
+
+```text
+你想用哪种方式连接服务器？
+1. 新手模式：我有服务器密码，请通过安全终端帮我配置 SSH 密钥。
+2. 高手模式：我已经配置好 SSH，请直接复用。
+```
+
+然后按所选模式继续：
+
+- **新手模式：**提供服务器地址、SSH 用户名和端口。直连检查通过后，在 Agent 的安全交互式终端输入服务器密码；Agent 会为现有用户创建专用 SSH 密钥、追加公钥（不覆盖已有密钥）、验证新密钥登录，并在本机 `~/.ssh/config` 建立独立别名。密码不会保存。新手模式只使用默认基础功能，不会询问或启用高级选项。
+- **高手模式：**提供已经配置好的 SSH Host 别名或目标。Agent 直接复用现有 SSH 密钥 / SSH Agent，不询问密码，也不新建或上传密钥。只有此模式会询问是否需要高级设置。
+
+**不要把密码粘贴到聊天里。**如果当前 Agent 没有安全交互式终端，改用手动密钥配置，或先配置好 SSH 后选择高手模式。
 
 ```text
 使用 ssh-proxy-node-deployer Skill，在我有权管理的 VPS 上部署自用节点。
-SSH 主机：<IP 或域名>
-SSH 用户：<用户名>
-SSH 端口：<端口；默认 22>
+开始前先问我选择“新手模式”或“高手模式”；如果我已经选过，就不要重复问。
+选择后只询问该模式需要的连接信息：新手模式询问服务器地址、用户名和 SSH 端口；高手模式询问已有 SSH Host 别名或目标。
+在任何密码输入前，从我实际使用的客户端网络直测指定的 SSH 端口（默认 22/TCP），不走 SSH 跳板或应用层代理；如果指定端口不是 22，也单独测试 22/TCP。如果你无法从我的客户端网络测试，先给我本机测试命令并等待结果。测试失败时不要直接说 IP 被封，先停止部署并报告原因，不要自动切换代理或更换 IP。
+新手模式：直连检查通过后，只能通过安全交互式终端向我请求服务器密码；用它为现有用户创建并追加本地专用 Ed25519 公钥（不要覆盖服务器已有 authorized_keys），验证密钥登录，并在本机 ~/.ssh/config 新增包含服务器、用户名、端口和密钥路径的不冲突 SSH 别名。不得保存密码或覆盖已有本地密钥，也不得创建服务器账户、改 SSH 服务配置或关闭密码登录。
+高手模式：复用我提供的已配置 SSH Host 别名、密钥或 SSH Agent；不问服务器密码，不新建或上传密钥。
+只有高手模式询问高级设置；新手模式只用默认基础功能。默认不启用可选项、不运行融合怪、不安装面板。
 
-先做只读检查并报告计划，再实施安全且可回滚的步骤。按默认方案使用高位端口；
-保留现有 SSH 和防火墙策略。融合怪不要运行，除非我之后明确要求。
-部署前从我实际使用的客户端网络直测 SSH 22/TCP，不走 SSH 跳板或应用层代理；
-如果你无法从我的客户端网络测试，先给我本机测试命令。测试失败时不要直接说 IP 被封，
-先停止部署并报告原因，不要自动切换代理或更换 IP。
+完成所选 SSH 连接方式后，先做只读检查并报告节点部署计划，再实施安全且可回滚的步骤。按默认方案使用高位端口，保留现有 SSH 和防火墙策略。
 客户端配置请放在仓库外的私有目录，不要把密码或私钥写入聊天、仓库或日志。
 ```
 
@@ -120,6 +132,8 @@ SSH 端口：<端口；默认 22>
 ```
 
 ### 可选功能
+
+下表是高手模式的选项。新手模式不会询问这些功能，也不会启用它们；如果想用高级功能，请在连接模式问题中选择高手模式。高手模式下可以回答“无”以使用默认配置。
 
 可以直接说中文功能名，也可以使用下表的功能码。复制下面的格式，并只保留你需要的项目：
 
@@ -172,7 +186,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
 - Generate Shadowrocket links and a Clash Verge / Mihomo profile by default. Keep client files in a private directory outside the repository.
 - Preserve existing SSH access, host firewall policy, and unrelated services. Do not reboot the VPS. Keep the sing-box API / Dashboard and third-party panels disabled by default; node traffic does not depend on a management page, and low-resource hosts should normally leave it off.
-- **Fusion Monster is off by default.** Run it only when explicitly requested. A full benchmark can use CPU, disk, and network bandwidth.
+- **Fusion Monster is off by default.** Run it only when explicitly requested in Expert mode; Beginner mode always skips it. A full benchmark can use CPU, disk, and network bandwidth.
 
 High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
 
@@ -239,22 +253,49 @@ On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. Ot
 
 Provide the SSH host, username, and port. **Do not paste a password into chat.** Prefer an existing SSH key or SSH agent. If password login is necessary, enter it only through the agent's secure interactive terminal.
 
+The agent first asks:
+
+```text
+Which connection mode do you want?
+1. Beginner mode: I have the server password; help me set up SSH keys through a secure terminal.
+2. Expert mode: SSH is already configured; reuse it directly.
+```
+
+Then it follows the selected mode:
+
+- **Beginner mode:** provide the server address, SSH username, and port. After the direct-connect check, enter the server password only in the agent's secure interactive terminal. The agent creates a dedicated local SSH key, appends its public key for the existing account without replacing existing keys, verifies key login, and adds a local `~/.ssh/config` alias. The password is not saved. Beginner mode uses only the default basic features and does not ask about advanced options.
+- **Expert mode:** provide an existing SSH Host alias or configured target. The agent reuses the current SSH key / SSH agent, asks for no password, and creates or uploads no key. Only expert mode asks about advanced settings.
+
+If the agent has no secure interactive terminal, use manual key setup or configure SSH first and select expert mode.
+
 ```text
 Use the ssh-proxy-node-deployer Skill to deploy a personal node on a VPS I own
 or am authorized to administer.
-SSH host: <IP address or hostname>
-SSH user: <username>
-SSH port: <port; default 22>
+First ask me to choose Beginner mode or Expert mode, unless I already chose.
+After I choose, ask only for that mode's connection details: server address,
+username, and SSH port for Beginner mode; existing SSH Host alias or target for Expert mode.
+Before any password entry, test the configured SSH port directly from the client
+network I will use, without an SSH jump host or application proxy. If the configured
+port is not 22, test TCP/22 separately. If you cannot test from that network, give
+me a local command and wait. If it fails, report that it is unreachable from this
+test location, stop, and do not automatically switch proxy or IP.
+Beginner mode: after the direct-connect check, request the server password only
+through a secure interactive terminal. Use it to create and install a dedicated
+local Ed25519 public key for the existing account without replacing its current
+`authorized_keys`, verify key login, and create a unique `~/.ssh/config` alias
+with the host, user, port, key path, and `IdentitiesOnly yes`. Never save the password, overwrite an existing key,
+create a server account, change SSH server settings, or disable password login.
+Expert mode: reuse the configured SSH Host alias, key, or agent I provide. Do
+not ask for a server password or create/upload a key.
+Ask about advanced settings only in Expert mode. Beginner mode uses defaults
+only. Keep add-ons, Fusion Monster, and panels off by default; enable them only
+if I choose Expert mode and explicitly request them.
 
-Start with read-only checks and report the plan. Use the default high-port profile,
+After setting up the selected SSH connection mode, perform read-only checks and
+report the node deployment plan before making node changes. Use the default high-port profile,
 preserve existing SSH access and firewall policy, and make reversible changes.
-Before deployment, test SSH TCP/22 directly from the client network I will use,
-without an SSH jump host or application proxy. If you cannot test from that network,
-give me a local command to run. If it fails, report that it is unreachable from this
-test location, stop deployment, and do not automatically switch proxy or IP.
-Do not run Fusion Monster unless I explicitly ask later. Save client profiles in a
-private directory outside the repository. Never put passwords or private keys in
-chat, the repository, or logs.
+Save client profiles in a private directory outside the repository. Never put
+passwords or private keys in chat, the repository, or logs.
 ```
 
 To inspect without deploying:
@@ -266,6 +307,8 @@ configuration or firewall rules yet.
 ```
 
 ### Optional features
+
+This table is for Expert mode. Beginner mode uses the basic defaults and is not asked about these options. In Expert mode, answer `none` to keep the defaults.
 
 You can name a feature in plain language or copy its ID from the table below. For example:
 

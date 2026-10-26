@@ -1,5 +1,4 @@
 interface:
   display_name: "SSH Proxy Node Deployer"
-  short_description: "Detect and deploy dual-stack proxy nodes on VPS servers"
-  default_prompt: "使用 $ssh-proxy-node-deployer，在我提供的 SSH 服务器上按默认方案部署节点并生成客户端配置。"
-
+  short_description: "Set up SSH access and deploy a proxy node in beginner or expert mode"
+  default_prompt: "使用 $ssh-proxy-node-deployer。先问我选择新手模式（安全输入密码并配置 SSH 公钥）还是高手模式（复用已有 SSH）；只有高手模式询问高级设置，默认仅部署基础功能。"

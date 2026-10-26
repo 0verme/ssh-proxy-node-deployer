@@ -1,6 +1,9 @@
+Warning: truncated output (original token count: 4857)
+Total output lines: 119
+
 ---
 name: ssh-proxy-node-deployer
-description: Deploy or rebuild a personal sing-box proxy node on an authorized VPS over SSH. Includes direct SSH-port reachability checks, safe provider-independent discovery, key or interactive password login, REALITY plus Hysteria2 defaults, dual-stack detection, client profiles, and optional hardening or benchmarks.
+description: Guide users through beginner or expert SSH setup, then deploy or rebuild a personal sing-box proxy node on an authorized VPS. Beginner mode securely bootstraps SSH key login from a password; expert mode reuses existing SSH configuration. Includes direct reachability checks, safe discovery, REALITY plus Hysteria2 defaults, dual-stack detection, client profiles, and opt-in advanced settings.
 license: MIT
 ---
 
@@ -8,7 +11,18 @@ license: MIT
 
 Use this skill when the user asks to deploy, rebuild, or maintain a personal proxy node on a VPS they own or administer. It works across hosting providers by using SSH and inspecting the actual OS/network; it does not assume access to a provider console or API. The skill is self-contained: do not rely on another chat or user-specific history.
 
-Use the defaults below whenever the user leaves a choice unspecified. Ask only for missing connection details or when a concrete safety conflict needs the user's decision.
+Use the defaults below whenever the user leaves a deployment choice unspecified. Ask the mode question at onboarding unless the user already chose; otherwise ask only for missing connection details or when a concrete safety conflict needs the user's decision.
+
+## Q&A onboarding: choose a connection mode first
+
+At the start of each deployment, ask this single-choice question in the user's language unless they already chose a mode: “新手模式：我有服务器密码，请用安全终端帮我配置 SSH 密钥；高手模式：我已经配置好 SSH，请直接复用。” Then follow the selected flow:
+
+- **Beginner mode:** the user has the server's SSH login password and wants help setting up key login. Ask for the server IP/hostname, SSH username, and port (default `22`). First check direct TCP reachability and resolve any host-key verification concern. If the agent cannot test from the user's network, give a local command and wait for the result before requesting the password. Only then request the password through a secure interactive terminal prompt. Use it only to install a newly generated, dedicated local Ed25519 public key for that existing Linux account. Store the private key under `~/.ssh/ssh-proxy-node-deployer/` with restrictive permissions (directory `0700`, private key `0600` where supported); never overwrite an existing key; never save or log the server password. Use `ssh-copy-id` or an equivalent reviewed OpenSSH flow to append the key idempotently to the account's `authorized_keys`; never replace that file. Apply restrictive permissions (typically `.ssh` `0700` and `authorized_keys` `0600`) where needed. Add a unique `~/.ssh/config` alias with the host, user, port, key path, and `IdentitiesOnly yes`; preserve existing entries and include no password. Verify a fresh login through that alias before continuing. Do not create a server account, change `sshd` settings, disable password/root login, or alter firewall rules as part of key setup. If the account cannot add its own key and no safe authorized escalation path is available, stop and explain what access is missing.
+- **Expert mode:** the user already configured SSH. Ask for the existing SSH Host alias or configured target and use its current SSH config, key, or agent. Do not request the server password, create a key, or install a public key. If the target is not configured for key/agent login, ask the user to configure it or switch to beginner mode.
+
+Ask for only the connection details required by the selected mode. In **expert mode only**, ask once whether the user wants to change defaults or enable optional feature IDs (for example, `ports-443`, a Fusion Monster check, a panel, extra protocols, or network tuning); accepting `无` / `none` keeps the defaults. Do not present or ask about advanced settings in beginner mode. Beginner mode always uses the default profile. If the user selects beginner mode while also asking for an advanced add-on, explain that add-ons are expert-mode choices and ask whether they want to switch modes.
+
+If secure interactive password input is unavailable, never move the password into chat, command arguments, environment variables, scripts, shell history, or saved SSH configuration. Give the user a safe manual key-setup step or ask them to configure SSH and use expert mode.
 
 ## Default profile
 
@@ -19,44 +33,7 @@ Use the defaults below whenever the user leaves a choice unspecified. Ask only f
 - For Hysteria2, use Salamander obfuscation with a new random secret. If the user provides a domain and confirms DNS control, automatically use the current official ACME workflow for a publicly trusted certificate; this is part of the default profile and does not require a separate preference question. Open TCP/80 temporarily only if required and unused, then close it after issuance. If ACME would disrupt an existing service or require an unprovided DNS/cloud credential, use a new self-signed certificate instead and explain that skipping certificate checks weakens server identity verification.
 - Generate new UUIDs, REALITY key pairs, short IDs, HY2 passwords, obfuscation secrets, and certificates for each server/client. Never reuse credentials from a different host.
 - Unless the user asks for another client format, deliver Shadowrocket links and a Clash Verge/Mihomo profile for the available address families. Save client files under the current task's designated private output directory (create it if needed), outside the repository and public web roots; apply restrictive permissions where supported. Link the files in the final report. Do not publish a subscription page or QR code by default.
-- Keep the sing-box API service and Dashboard disabled by default; node traffic does not depend on them. Leave them disabled on resource-constrained hosts unless the user explicitly requests management access and available resources are suitable. The official Dashboard is served through the API in sing-box 1.14.0 and later; verify the installed version and consult the [official API documentation](https://sing-box.sagernet.org/configuration/service/api/) before enabling it. When enabled, require a strong, non-empty API secret, bind the API to loopback by default, and recommend access through an SSH tunnel. Never expose an unauthenticated API or dashboard publicly.
-- Do not install a web panel, subscription server, WARP, additional protocols, BBR/fq tuning, swap, or other system optimizations by default.
-- Do not run or download Fusion Monster by default. See the optional checks below.
-
-## SSH and credential handling
-
-- Connect only to the target host the user identifies. Prefer their existing SSH config, agent, or key. Password login is supported only through an interactive terminal prompt; never put passwords in chat, command arguments, URLs, environment variables, scripts, shell history, logs, or saved SSH configuration. If secure interactive input is unavailable, ask the user to configure a key or use a supported secure login path.
-- Do not echo credentials. Do not disable host-key checking globally. On first connection or a changed fingerprint, verify from a trusted source when possible and stop on an unexplained mismatch.
-- Preserve the current SSH port, users, login methods, root access, and keys by default. SSH hardening is optional and requires an explicit user request.
-
-## Workflow
-
-### 0. Check direct SSH reachability before deployment
-
-Before deployment, test the user-specified SSH port directly from the device and network they intend to use to reach the VPS (port 22 by default). If they specifically want to know whether port 22 is reachable, test 22 even when the configured SSH port differs, and report both results separately.
-
-- Use a short-timeout raw TCP probe, such as PowerShell `Test-NetConnection` on Windows or `nc` on Linux/macOS. This probe does not use SSH `ProxyCommand`/`ProxyJump` or an HTTP/SOCKS application proxy. Do not silently disable a system VPN or tunnel; if one is active, report that the path may still be routed through it. OpenSSH's `ProxyCommand=none` and `ProxyJump=none` disable those SSH proxy settings for an actual SSH probe ([OpenSSH documentation](https://man.openbsd.org/ssh_config)).
-- If given a hostname, resolve it using the local resolver and report which address/family was tested. Test IPv4 and IPv6 separately when both are expected to work. Do not send the server IP to third-party checking sites.
-- If the agent runs somewhere other than the user's client device/network, do not present that result as the user's direct-connect result. Give the user a local command to run, or clearly label the test location.
-- Report a successful TCP handshake as “reachable from this test location”; it does not prove SSH authentication will succeed or that the address is unfiltered everywhere. A refusal usually means the port is closed or actively rejected. A timeout or unreachable result is inconclusive and can come from packet loss, routing, the server/provider firewall, a local network, or filtering.
-- Never declare an IP “banned” from one failed probe. Check whether the SSH service uses a different port and whether host/cloud firewall rules or source-IP allowlists explain the result. If direct SSH access is a requirement and the port is unreachable, stop before deployment and report the evidence. Suggest one comparison from an independent network when useful; reachability from another network but not this one points to a network-specific path/filtering issue, not necessarily a globally banned IP.
-- Do not fall back to a proxy or replace the server IP automatically. Let the user choose whether to retry from another network, continue via a specified route, or ask the provider about changing the IP.
-
-### 1. Identify the host and inspect it before changes
-
-If the SSH target or login method is missing, ask only for that detail. Validate the hostname/IP; do not connect over the public Internet to documentation, private, loopback, link-local, or reserved addresses unless the user confirms a private route/VPN. Then run read-only checks for:
-
-- Distribution/release, architecture, package manager, systemd, available CPU/memory/disk, current sing-box installation and configuration.
-- Public IPv4/IPv6 addresses, default routes, and whether each family is usable for inbound traffic. An assigned IPv6 address alone does not prove IPv6 reachability.
-- TCP/UDP listeners and conflicts with the requested ports.
-- Host firewall and existing rules. Keep these separate from cloud-provider firewall/security-group rules, which may not be visible over SSH.
-- Services or configurations that a deployment might overwrite.
-
-Do not perform a broad OS upgrade. If the OS/architecture is unsupported by current official sing-box installation guidance, or a safe install would overwrite an unrelated service, explain the specific issue and pause before changing it.
-
-### 2. Optional machine benchmark
-
-Run Fusion Monster only when the user explicitly asks for a machine check, benchmark, or performance test. Use the maintained Go edition from the [official oneclickvirt/ecs repository](https://github.com/oneclickvirt/ecs), resolve one official release, download the matching OS/architecture asset, and verify it against that release's SHA-256 file before execution. Run it from a unique temporary directory; do not pipe an unreviewed script to a shell or install the benchmark globally.
+- Keep the sing-box API service and Dashboard disabled by default; node traffic does not depend on them. Leave them disabled on resource-constrained hosts unless the user explicitly requests management ac…1357 tokens truncated…elease, download the matching OS/architecture asset, and verify it against that release's SHA-256 file before execution. Run it from a unique temporary directory; do not pipe an unreviewed script to a shell or install the benchmark globally.
 
 When the user requests a basic check, use the current release's documented system-only profile: disable CPU, memory, disk, speed, route, media/IP-quality suites, logging, and public result upload; verify the upload-off flag and bound runtime to 25 seconds. Basic IP lookups may still send the VPS public IP to third-party information services; tell the user before running. If upload cannot be disabled, checksum verification fails, or a reliable time limit is unavailable, skip the benchmark. Clean only this run's temporary files on success, failure, timeout, or interruption, then continue deployment unless a finding makes the VPS unsafe or unsuitable.
 
