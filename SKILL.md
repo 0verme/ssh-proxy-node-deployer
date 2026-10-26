@@ -1,6 +1,6 @@
 ---
 name: ssh-proxy-node-deployer
-description: Guide users through beginner or expert SSH setup, then deploy or rebuild a personal sing-box proxy node on an authorized VPS. Beginner mode securely bootstraps SSH key login from a password; expert mode reuses existing SSH configuration. Includes direct reachability checks, safe discovery, REALITY plus Hysteria2 defaults, dual-stack detection, client profiles, and opt-in advanced settings.
+description: Guide users through safe beginner or expert SSH account setup, then deploy a personal sing-box node on an authorized VPS. Beginner account handling is based on the original SSH login identity; expert mode preserves existing accounts by default. Includes read-only checks, rollback, REALITY and Hysteria2 defaults, dual-stack detection, and optional features.
 license: MIT
 ---
 
@@ -12,16 +12,19 @@ Use the defaults below whenever the user leaves a deployment choice unspecified.
 
 ## Q&A onboarding: choose a connection mode first
 
-At the start of each deployment, ask this single-choice question in the user's language unless they already chose a mode: “新手模式：我有服务器密码，请用安全终端帮我配置 SSH 密钥；高手模式：我已经配置好 SSH，请直接复用。” Then follow the selected flow:
+At the start of each deployment, ask this single-choice question in the user's language unless they already chose a mode: “新手模式：按初始 SSH 用户身份创建/复用 `vps` 或复用当前用户，并部署默认节点；高手模式：复用现有 SSH 和账户，自定义高级选项。” Then follow the selected flow. In beginner mode, ask for the server address, the initial SSH username, and port (default `22`). In expert mode, ask for an existing SSH Host alias or configured target.
 
-- **Beginner mode:** the user has the server's SSH login password and wants help setting up key login. Ask for the server IP/hostname, SSH username, and port (default `22`). First check direct TCP reachability and resolve any host-key verification concern. If the agent cannot test from the user's network, give a local command and wait for the result before requesting the password. Only then request the password through a secure interactive terminal prompt. Use it only to install a newly generated, dedicated local Ed25519 public key for that existing Linux account. Store the private key under `~/.ssh/ssh-proxy-node-deployer/` with restrictive permissions (directory `0700`, private key `0600` where supported); never overwrite an existing key; never save or log the server password. Use `ssh-copy-id` or an equivalent reviewed OpenSSH flow to append the key idempotently to the account's `authorized_keys`; never replace that file. Apply restrictive permissions (typically `.ssh` `0700` and `authorized_keys` `0600`) where needed. Add a unique `~/.ssh/config` alias with the host, user, port, key path, and `IdentitiesOnly yes`; preserve existing entries and include no password. Verify a fresh login through that alias before continuing. Do not create a server account, change `sshd` settings, disable password/root login, or alter firewall rules as part of key setup. If the account cannot add its own key and no safe authorized escalation path is available, stop and explain what access is missing.
-- **Expert mode:** the user already configured SSH. Ask for the existing SSH Host alias or configured target and use its current SSH config, key, or agent. Do not request the server password, create a key, or install a public key. If the target is not configured for key/agent login, ask the user to configure it or switch to beginner mode.
+- **Beginner mode, initial SSH user `root`:** after direct-connect verification and read-only inspection, plan to create `vps` only if it does not exist; audit and safely reuse an existing `vps` without overwriting its password, keys, groups, or other settings. For a newly created `vps`, configure a dedicated Ed25519 key and password-required sudo. For an existing `vps`, reuse its working authentication and sudo as-is; stop if either is missing or conflicting. Independently verify a fresh `vps` SSH login and sudo before deployment. Keep the root system account and its SSH access unchanged by default.
+- **Beginner mode, initial SSH user is not `root`:** reuse that exact account (including `ubuntu`, `debian`, `overme`, or `vps`). Never create `vps`, rename the account, or change its password, SSH keys, or SSH policy. Check whether the current account has the required sudo access; if not, report the missing permission and stop before system changes.
+- **Expert mode:** reuse the existing SSH user and authentication settings by default. Create or modify an account only when the user explicitly requests a specific account policy. Advanced SSH settings (host, port, alias, key, user strategy, sudo, root-login and password-authentication policy) and node/network options are available only in expert mode; “none” keeps defaults. Prefer a non-root operating account. If only root access exists and there is no already-configured non-root account, report the need and stop rather than creating one implicitly.
+
+The account branch is determined only by the **initial SSH login identity**, captured before any `sudo`, `su`, or other privilege change. Never infer it from the effective user after elevation. If the initial identity cannot be established, stop before account changes.
 
 Ask for only the connection details required by the selected mode. In **expert mode only**, ask once whether the user wants to change defaults or enable optional feature IDs (for example, `ports-443`, a Fusion Monster check, a panel, extra protocols, or network tuning); accepting `无` / `none` keeps the defaults. Do not present or ask about advanced settings in beginner mode. Beginner mode always uses the default profile. If the user selects beginner mode while also asking for an advanced add-on, explain that add-ons are expert-mode choices and ask whether they want to switch modes.
 
 In **both modes**, ask which client app(s) the user uses before generating client files. Allow multiple selections and offer familiar examples such as Shadowrocket, Clash Verge/Mihomo, sing-box, and v2rayN, plus “other” for a named app. This is a normal setup question, not an advanced feature. Generate only formats supported by the selected apps. If the user is unsure, ask what device/operating system they use, check current compatibility when needed, recommend a suitable choice, and get confirmation before generating that format.
 
-If secure interactive password input is unavailable, never move the password into chat, command arguments, environment variables, scripts, shell history, or saved SSH configuration. Give the user a safe manual key-setup step or ask them to configure SSH and use expert mode.
+If secure interactive password input is unavailable, never move a password into chat, command arguments, environment variables, scripts, shell history, logs, or saved SSH configuration. For a new `vps` account, use a cryptographically secure generator for a password of at least 24 characters and set it only through a non-recording secure terminal; deliver it only through that protected channel. If the terminal cannot safely set and deliver the generated password, ask the user to set it themselves through a secure TTY before continuing. Do not echo or persist the password. Never put private keys in the repository or logs.
 
 ## Default profile
 
@@ -38,9 +41,24 @@ If secure interactive password input is unavailable, never move the password int
 
 ## SSH and credential handling
 
-- Connect only to the target host the user identifies. Follow the selected onboarding mode: reuse configured SSH in expert mode, or use a secure interactive password prompt only for the beginner-mode public-key bootstrap described above. Never put passwords in chat, command arguments, URLs, environment variables, scripts, shell history, logs, or saved SSH configuration.
+- Connect only to the target host the user identifies. Reuse the configured SSH connection in expert mode. When the current authorized login path requires a password, accept it only through a secure interactive terminal after the reachability check. Never put passwords in chat, command arguments, URLs, environment variables, scripts, shell history, logs, or saved SSH configuration.
+- Do not execute an unreviewed remote one-click installer or pipe remote content directly to a shell. Use official installation instructions; inspect any script and verify its source before execution.
 - Do not echo credentials. Do not disable host-key checking globally. On first connection or a changed fingerprint, verify from a trusted source when possible and stop on an unexplained mismatch.
-- Preserve the current SSH port, users, login methods, root access, and keys by default. SSH hardening is optional and requires an explicit user request.
+- Preserve the current SSH port, users, login methods, root access, and keys except for the beginner-mode `root` → new `vps` bootstrap defined below. SSH hardening is optional and requires an explicit user request.
+
+## Account initialization and authentication
+
+- Record the username used for the first SSH login before running any command that changes identity. Use that original login identity for all beginner/expert account decisions, even if a later command runs as root through `sudo` or `su`.
+- Run ordinary remote work as a non-root account. If beginner mode starts with root, use that connection only for the read-only audit and the planned one-time `vps` bootstrap; after verifying `vps`, continue through that account and use `sudo` only for system commands that need it. Reuse the original non-root user in the other beginner branch. In expert mode, prefer an existing non-root user; use root only when the user explicitly requests it and the access plan supports recovery.
+- In beginner mode with an initial `root` login, include the OS, SSH configuration, existing users, sudo/sudoers environment, current authentication paths, and the existence and state of `vps` in the read-only audit. Report the account plan before any write. If `vps` is absent, create a normal administrative user with a home directory and valid login shell, using the host's standard account tools. If present, reuse it only if its existing authentication and permissions safely support the requested access; do not overwrite or silently repair conflicting state. Stop and report any conflict.
+- Give the new `vps` account a unique, cryptographically generated password of at least 24 characters for local account authentication and sudo; SSH access uses its dedicated key. Set and deliver the password only in a secure, non-recording interactive terminal. Do not place it in a command argument, environment variable, script, shell history, transcript, log, chat, or repository. If safe terminal entry and delivery are unavailable, have the user set it through a secure TTY and verify it there; do not continue with an unknown or undisclosed password.
+- Only for a newly created `vps`, generate a dedicated local Ed25519 key under `~/.ssh/ssh-proxy-node-deployer/` after confirming the destination path does not exist. Keep the directory and private key restricted (typically `0700` and `0600`). Append its public key idempotently to `authorized_keys`; never truncate or replace that file, existing keys, or local SSH configuration. Use restrictive `.ssh` and `authorized_keys` permissions (typically `0700` and `0600`) only where needed. Add a unique alias containing the server host, `vps` user, SSH port, private-key path, and `IdentitiesOnly yes`, preserving all existing SSH config entries. For an existing `vps`, use its working key and account configuration unchanged.
+- Configure password-required sudo only for a newly created `vps`, using the OS's standard admin group or a reviewed sudoers entry. Never configure `NOPASSWD: ALL`. For an existing `vps`, inspect and reuse its current sudo permissions; if insufficient, stop and report the conflict. Validate effective permissions with `sudo -l`; expire any cached sudo timestamp and verify `sudo -v` through an interactive password prompt.
+- Keep the original root session open. From a genuinely separate SSH connection, verify the `vps` key login, confirm the remote login identity is `vps` before elevation, and verify password-required sudo succeeds. Do not treat a reused session, `su`, or a post-sudo identity check as independent login verification. If any check fails, stop, preserve the original working access, and report changes already made; do not deploy, disable an access path, or automatically delete the new account.
+- In beginner mode with any initial non-root login, reuse that exact user and its current authentication. Read-only check its sudo capability. Do not create `vps`, alter its groups, add keys, change its password, or modify SSH settings. If authentication fails or sudo is insufficient, report the specific failed check and the permission needed; stop without attempting privilege escalation or creating another account.
+- In expert mode, leave accounts and authentication untouched unless the user explicitly asks to create or change a named account or SSH policy. Prefer a non-root operating account; never create one implicitly. Inspect and report the proposed delta first; use the same secret handling, backup, independent verification, and rollback safeguards for any requested changes.
+- Make account initialization repeatable: inspect whether the account, key, sudo rule, and local SSH alias already exist before writing. Do not duplicate users, key lines, aliases, or sudo rules; an already-correct state needs no change. For existing `vps`, reuse the current settings as-is or stop on a conflict.
+- Never disable root SSH login by default. Do so only after a separate explicit request, a verified alternate administrator login, and a tested recovery path plus rollback plan. Check `sshd` syntax before reload/restart, preserve the active SSH session, and verify a second connection before considering the change accepted. Never delete the root system account or blindly modify a firewall.
 
 ## Workflow
 
@@ -67,7 +85,11 @@ If the SSH target or login method is missing, ask only for that detail. Validate
 
 Do not perform a broad OS upgrade. If the OS/architecture is unsupported by current official sing-box installation guidance, or a safe install would overwrite an unrelated service, explain the specific issue and pause before changing it.
 
-### 2. Optional machine benchmark
+### 2. Account initialization and independent verification
+
+After the read-only audit, report the deployment and account plan before any write. Then follow the account policy above: initialize `vps` only for beginner mode whose **initial** SSH user is root; otherwise reuse the initial user. Complete independent authentication and sudo checks before installing or changing sing-box. If the user requested assessment only, stop after reporting findings. If an account conflict, missing secure TTY, insufficient permissions, failed login, or failed sudo check prevents safe continuation, stop and explain the reason.
+
+### 3. Optional machine benchmark
 
 Run Fusion Monster only when the user explicitly asks for a machine check, benchmark, or performance test. Use the maintained Go edition from the [official oneclickvirt/ecs repository](https://github.com/oneclickvirt/ecs), resolve one official release, download the matching OS/architecture asset, and verify it against that release's SHA-256 file before execution. Run it from a unique temporary directory; do not pipe an unreviewed script to a shell or install the benchmark globally.
 
@@ -75,21 +97,21 @@ When the user requests a basic check, use the current release's documented syste
 
 Full benchmark mode is opt-in. It can create CPU/disk load and consume substantial bandwidth, so run it only when the user explicitly requests comprehensive tests. Never publish results unless the user explicitly asks.
 
-### 3. Install with minimal, reversible changes
+### 4. Install with minimal, reversible changes
 
 - Choose the official package instructions for the detected Linux distribution. Do not run unrelated repositories' one-line installers as root. If installing from a binary release, verify its official checksum/signature before use.
 - If sing-box or its configuration already exists, inspect and back it up before changes. Add or update only the requested inbound; do not replace unrelated configuration or remove an existing service. If safe coexistence is not possible, pause and explain the conflict.
 - Write secrets in protected files (directory `0700`, files `0600` where suitable). Keep Hysteria2 certificate/key private. Use the service account/permissions specified by the official package when possible.
 - Validate configuration before restarting. Keep a rollback copy and do not reboot.
 
-### 4. Preserve firewall and SSH access
+### 5. Preserve firewall and SSH access
 
 - If a host firewall is active, add only the exact TCP/UDP node-port rules while preserving its existing policy. For HTTP-based ACME validation, open TCP/80 temporarily and remove that rule after issuance. Do not flush rules or replace the firewall implementation.
 - If no host firewall is active, leave it that way by default; report the cloud firewall/security-group rules the user needs to add. Enabling a host firewall is an opt-in feature.
 - If the user explicitly asks to enable a firewall or harden SSH, protect the current session, preserve the real SSH port, and use a timed rollback when supported. Verify a second SSH login before removing old access or canceling rollback. If access cannot be protected, stop before the risky change.
 - Never claim to have changed a provider firewall unless an authorized provider integration was actually used.
 
-### 5. Verify and deliver
+### 6. Verify and deliver
 
 - Check configuration validity, service health, listening sockets, firewall rules, and logs without exposing secrets.
 - Test REALITY and HY2 over every available address family. Prefer a real client from outside the VPS. Label server-side self-tests separately from external tests; do not claim a handshake or usable tunnel without evidence.
