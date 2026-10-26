@@ -94,7 +94,37 @@ git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/
 
 </details>
 
-### 给 Agent 的提示词
+### 快速使用 / 给 Agent 的提示词
+
+复制一种模式，把占位符替换成实际值后发送。Agent 应直接使用已填写的信息；只有必需参数缺失或无效时才询问，不得猜测。
+`CLIENT` 可填写 Shadowrocket、Clash Verge / Mihomo、sing-box、v2rayN 或其他客户端名称。
+
+**新手模式**（填写服务器 IP、SSH 用户名、端口和客户端）：
+
+```text
+使用 ssh-proxy-node-deployer Skill 部署我有权管理的 VPS。已选择新手模式；直接使用以下参数，不要重复询问已填写项，缺失或无效时才询问，不得猜测：
+SERVER_IP=<服务器 IP>
+SSH_USER=<初始 SSH 用户名>
+SSH_PORT=<SSH 端口，例如 22>
+CLIENT=<客户端名称>
+
+先从我实际使用的网络直测指定 SSH 端口，不走 SSH 跳板或应用层代理；若不是 22，也单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果；测试失败就停止并报告，不要推断 IP 被封或切换代理。
+先只读检查并展示部署计划，再按 Skill 安全流程执行。密码不得出现在聊天中；通过连通性检查后，如需密码，只能使用不记录的安全交互终端，无法安全输入时让我通过安全 TTY 输入。
+只用新手模式默认功能，不询问或启用高级选项；客户端配置保存到仓库外的私有目录。
+```
+
+**高手模式**（填写已有 SSH Config Host 别名）：
+
+```text
+使用 ssh-proxy-node-deployer Skill 部署我有权管理的 VPS。已选择高手模式；SSH_HOST=<现有 SSH Config 中的 Host 别名>，OPTIONAL_FEATURES=none。复用该配置中的用户、密钥和 SSH Agent，不要重复询问已填写信息；只有必需参数缺失或无效时才询问，不得猜测。
+先从我实际使用的网络直测该 SSH 目标的端口，不走 SSH 跳板或应用层代理；若不是 22，也单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果。测试失败就停止并报告，不要推断 IP 被封或切换代理。
+先只读检查并展示部署计划，再按 Skill 安全流程执行。不要在聊天中收集密码；如需密码，只能在连通性检查后通过不记录的安全交互终端输入。默认保留账户和 SSH 设置；不启用任何未列出的可选功能。
+```
+
+<details>
+<summary>详细说明：账户处理与完整安全操作流程</summary>
+
+以下内容说明两种模式的账户策略和完整安全流程；快速使用时无需复制这部分。
 
 开始部署前，Agent 会先问你：
 
@@ -128,6 +158,8 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 严格按顺序执行：连接验证 → 只读检查 → 展示计划 → 必要的账户初始化 → 独立 SSH / sudo 验证 → 节点部署 → 最终验收。不得运行未经审查的远程一键安装脚本，也不得将远程内容直接管道给 Shell；保留现有 SSH 和防火墙策略。任何 SSH 配置变更都要先做语法检查并准备已验证的恢复与回滚路径。禁用 Root SSH 登录必须经过明确确认和备用管理员独立验证；永不删除 root 系统账户，也不盲目修改防火墙。按默认方案使用高位端口。
 客户端配置请放在仓库外的私有目录，不要把密码或私钥写入聊天、仓库或日志。
 ```
+
+</details>
 
 ### 模式行为与验收场景
 
@@ -267,7 +299,37 @@ On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. Ot
 
 </details>
 
-### Prompt your agent
+### Quick start / Prompt your agent
+
+Copy one mode and replace its placeholders with real values. The agent must use completed values without asking again; it should ask only for required values that are missing or invalid and must not guess.
+For `CLIENT`, use Shadowrocket, Clash Verge / Mihomo, sing-box, v2rayN, or another named client app.
+
+**Beginner mode** (fill in the server IP, SSH username, port, and client app):
+
+```text
+Use the ssh-proxy-node-deployer Skill to deploy a VPS I own or am authorized to administer. Beginner mode is selected; use the parameters below without asking again for completed values. Ask only when a required value is missing or invalid; do not guess:
+SERVER_IP=<server IP>
+SSH_USER=<initial SSH username>
+SSH_PORT=<SSH port, for example 22>
+CLIENT=<client app>
+
+First test the specified SSH port directly from the network I will use, without an SSH jump host or application proxy; if it is not 22, also test TCP/22. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
+Perform read-only checks and show the deployment plan first, then follow the Skill's safety process. Never put passwords in chat. After reachability is checked, enter a password only through a non-recording secure interactive terminal; if safe entry is unavailable, ask me to enter it through a secure TTY.
+Use Beginner defaults only: do not ask about or enable advanced options. Save client files in a private directory outside the repository.
+```
+
+**Expert mode** (fill in an existing SSH Config Host alias):
+
+```text
+Use the ssh-proxy-node-deployer Skill to deploy a VPS I own or am authorized to administer. Expert mode is selected; SSH_HOST=<Host alias from my existing SSH Config>, OPTIONAL_FEATURES=none. Reuse its configured user, key, and SSH Agent. Do not ask again for completed values; ask only for required values that are missing or invalid, and do not guess.
+First test the SSH target's port directly from the network I will use, without an SSH jump host or application proxy; if it is not 22, also test TCP/22. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
+Perform read-only checks and show the deployment plan first, then follow the Skill's safety process. Never collect passwords in chat; after reachability is checked, enter a password only through a non-recording secure interactive terminal. Preserve account and SSH settings by default; do not enable unlisted optional features.
+```
+
+<details>
+<summary>Detailed explanation: account handling and full safety workflow</summary>
+
+The following section explains each mode's account policy and complete safety workflow. You do not need to copy it for a quick start.
 
 Provide the SSH host, initial username, and port. **Do not paste a password into chat.** Keep the original login identity as the account-selection basis, even if a later command uses `sudo` or `su`.
 
@@ -360,6 +422,8 @@ Use ssh-proxy-node-deployer to assess whether this VPS is suitable. Perform
 read-only checks and report your findings. Do not install software or change
 configuration or firewall rules yet.
 ```
+
+</details>
 
 ### Optional features
 
