@@ -24,7 +24,7 @@
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
 - 默认生成 Shadowrocket 链接和 Clash Verge / Mihomo 配置，保存在仓库之外的私有目录。
-- 默认保留现有 SSH 登录方式、主机防火墙策略和其他服务；不重启整台机器，不安装面板。
+- 默认保留现有 SSH 登录方式、主机防火墙策略和其他服务；不重启整台机器。sing-box API / Dashboard 和第三方面板默认关闭；节点转发不依赖管理页，低配机器建议保持关闭。
 - **默认不下载、不运行融合怪。** 只有你明确要求测速或机器评测时才运行；完整测试可能增加 CPU、磁盘负载和流量。
 
 高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
@@ -80,7 +80,7 @@ SSH 端口：<端口；默认 22>
 - 启用 UFW / firewalld，或加固 SSH（需要先验证备用登录并准备回滚）。
 - AnyTLS、TUIC、Shadowsocks 等额外协议、多个用户或流量统计。
 - WARP、BBR / fq、交换空间及其他网络调优。
-- 私有订阅、二维码或管理面板。
+- sing-box 官方 API / Dashboard（1.14.0+）、第三方面板、私有订阅或二维码。启用前先检查机器资源；官方 Dashboard 默认仅监听本机并通过 SSH 隧道访问，同时必须设置非空强 API 密钥，避免把未认证接口暴露到公网。详情见 [sing-box 官方 API 文档](https://sing-box.sagernet.org/configuration/service/api/)。
 
 ### 图片与实际测试
 
@@ -106,7 +106,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
 - Generate Shadowrocket links and a Clash Verge / Mihomo profile by default. Keep client files in a private directory outside the repository.
-- Preserve existing SSH access, host firewall policy, and unrelated services. Do not reboot the VPS or install a web panel by default.
+- Preserve existing SSH access, host firewall policy, and unrelated services. Do not reboot the VPS. Keep the sing-box API / Dashboard and third-party panels disabled by default; node traffic does not depend on a management page, and low-resource hosts should normally leave it off.
 - **Fusion Monster is off by default.** Run it only when explicitly requested. A full benchmark can use CPU, disk, and network bandwidth.
 
 High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
@@ -150,7 +150,7 @@ configuration or firewall rules yet.
 
 ### Optional features
 
-Ask explicitly for Fusion Monster basic checks or a full benchmark, host firewall setup, SSH hardening, extra protocols, multiple users, traffic accounting, WARP, BBR / fq, swap, a private subscription, QR codes, or a management panel. Some options add load, consume bandwidth, or need extra access safeguards.
+Ask explicitly for Fusion Monster basic checks or a full benchmark, host firewall setup, SSH hardening, extra protocols, multiple users, traffic accounting, WARP, BBR / fq, swap, a private subscription, QR codes, the official sing-box API / Dashboard (1.14.0+), or a third-party management panel. Check resource headroom first. For the official Dashboard, use a non-empty strong API secret and loopback binding with an SSH tunnel by default; direct remote exposure needs TLS, strict network restrictions, and an explicit request. See the [official API documentation](https://sing-box.sagernet.org/configuration/service/api/).
 
 ### Screenshots and real-world validation
 

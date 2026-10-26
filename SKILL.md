@@ -19,6 +19,7 @@ Use the defaults below whenever the user leaves a choice unspecified. Ask only f
 - For Hysteria2, use Salamander obfuscation with a new random secret. If the user provides a domain and confirms DNS control, automatically use the current official ACME workflow for a publicly trusted certificate; this is part of the default profile and does not require a separate preference question. Open TCP/80 temporarily only if required and unused, then close it after issuance. If ACME would disrupt an existing service or require an unprovided DNS/cloud credential, use a new self-signed certificate instead and explain that skipping certificate checks weakens server identity verification.
 - Generate new UUIDs, REALITY key pairs, short IDs, HY2 passwords, obfuscation secrets, and certificates for each server/client. Never reuse credentials from a different host.
 - Unless the user asks for another client format, deliver Shadowrocket links and a Clash Verge/Mihomo profile for the available address families. Save client files under the current task's designated private output directory (create it if needed), outside the repository and public web roots; apply restrictive permissions where supported. Link the files in the final report. Do not publish a subscription page or QR code by default.
+- Keep the sing-box API service and Dashboard disabled by default; node traffic does not depend on them. Leave them disabled on resource-constrained hosts unless the user explicitly requests management access and available resources are suitable. The official Dashboard is served through the API in sing-box 1.14.0 and later; verify the installed version and consult the [official API documentation](https://sing-box.sagernet.org/configuration/service/api/) before enabling it. When enabled, require a strong, non-empty API secret, bind the API to loopback by default, and recommend access through an SSH tunnel. Never expose an unauthenticated API or dashboard publicly.
 - Do not install a web panel, subscription server, WARP, additional protocols, BBR/fq tuning, swap, or other system optimizations by default.
 - Do not run or download Fusion Monster by default. See the optional checks below.
 
@@ -34,7 +35,7 @@ Use the defaults below whenever the user leaves a choice unspecified. Ask only f
 
 If the SSH target or login method is missing, ask only for that detail. Validate the hostname/IP; do not connect over the public Internet to documentation, private, loopback, link-local, or reserved addresses unless the user confirms a private route/VPN. Then run read-only checks for:
 
-- Distribution/release, architecture, package manager, systemd, disk/memory, current sing-box installation and configuration.
+- Distribution/release, architecture, package manager, systemd, available CPU/memory/disk, current sing-box installation and configuration.
 - Public IPv4/IPv6 addresses, default routes, and whether each family is usable for inbound traffic. An assigned IPv6 address alone does not prove IPv6 reachability.
 - TCP/UDP listeners and conflicts with the requested ports.
 - Host firewall and existing rules. Keep these separate from cloud-provider firewall/security-group rules, which may not be visible over SSH.
@@ -78,7 +79,8 @@ Enable only when the user asks:
 - Full Fusion Monster benchmarks or other high-traffic/CPU/disk tests.
 - UFW/firewalld installation and activation when the server currently has no host firewall.
 - SSH hardening (new administrator, key-only login, disabling root/password login), after the replacement login has been tested and rollback is ready.
-- Private HTTPS subscription, QR codes, or an admin/configuration panel. (A domain-backed ACME certificate remains the default when the user provides domain and DNS control.)
+- Private HTTPS subscription or QR codes. (A domain-backed ACME certificate remains the default when the user provides domain and DNS control.)
+- The sing-box API/Dashboard (1.14.0+) or a third-party management panel. Check resource headroom first; keep it off on low-resource hosts unless the user explicitly accepts the trade-off. For the official Dashboard, use a non-empty strong API secret and loopback binding with an SSH tunnel by default. Any direct remote exposure needs TLS, strict network restrictions, and an explicit user request.
 - AnyTLS, TUIC, Shadowsocks, or other protocols beyond the default REALITY + Hysteria2 pair.
 - WARP, BBR/fq, swap, UDP buffer changes, or other performance/network tuning.
 - Additional users, per-user credentials, quotas, or traffic accounting.
