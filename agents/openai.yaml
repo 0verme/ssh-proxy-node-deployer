@@ -1,4 +1,4 @@
 interface:
   display_name: "SSH Proxy Node Deployer"
-  short_description: "Set up SSH access and deploy a proxy node in beginner or expert mode"
-  default_prompt: "使用 $ssh-proxy-node-deployer。先问我选择新手模式（安全输入密码并配置 SSH 公钥）还是高手模式（复用已有 SSH），并问我使用什么客户端（可多选）；只有高手模式询问高级设置，默认仅部署基础功能。"
+  short_description: "Initialize accounts safely by SSH identity, then deploy a proxy node"
+  default_prompt: "使用 $ssh-proxy-node-deployer。未选模式时先问新手/高手；账户分支只按初始 SSH 用户判断：新手 root 创建或审计复用 vps，非 root 复用原用户；高手默认不改账户。先只读检查并报告计划，独立验证账户后再部署。生成配置前询问客户端（可多选）；只有高手模式询问高级设置。"
