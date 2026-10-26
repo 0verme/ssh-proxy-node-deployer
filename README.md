@@ -46,19 +46,31 @@ nc -vz -w 5 SERVER_IP 22
 
 ### 首次安装
 
-通常只需安装一次；之后直接调用 `$ssh-proxy-node-deployer`。
+通常只需安装一次；后续调用方式由 Agent 平台决定。
 
-**Codex：把这段发给 Agent 安装**
+**通用安装提示词**
 
 ```text
-$skill-installer 请从 GitHub 仓库 0verme/ssh-proxy-node-deployer 的仓库根目录安装 Skill；入口文件是 SKILL.md，Skill 名称为 ssh-proxy-node-deployer。如果同名 Skill 已存在，先告诉我更新方式，不要覆盖。
+请从公开 GitHub 仓库 https://github.com/0verme/ssh-proxy-node-deployer 安装名为 ssh-proxy-node-deployer 的 Skill。
+入口文件在仓库根目录的 SKILL.md。请使用当前 Agent 平台支持的标准安装方式，
+并告诉我之后如何调用。如果平台不支持持久安装，请读取该文件并只在当前任务中遵循，
+不要声称已经为后续会话安装。如果已存在同名 Skill，先告诉我更新方式，不要覆盖。
 ```
 
-安装完成后，在下一轮调用 `$ssh-proxy-node-deployer`。
+**只在当前任务使用，不做持久安装**
 
-**其他 Agent：** 如果平台支持从 GitHub 安装 Skill，就让它安装仓库根目录的 `SKILL.md`。如果只是本次使用，也可以让 Agent 读取 [SKILL.md](https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md) 并在当前任务中遵循；这种方式不会持久安装。
+```text
+请读取 https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md，
+并在本次任务中遵循其中的说明。这不会安装到后续会话。
+```
 
-**手动备用方式（Codex）**
+**Codex 快捷方式（可选）**
+
+```text
+$skill-installer 请从 0verme/ssh-proxy-node-deployer 仓库根目录安装 Skill，入口文件为 SKILL.md，名称为 ssh-proxy-node-deployer。如果同名 Skill 已存在，先告诉我更新方式，不要覆盖。
+```
+
+Codex 手动安装备用方式：
 
 Windows PowerShell：
 
@@ -75,7 +87,7 @@ mkdir -p ~/.codex/skills
 git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/ssh-proxy-node-deployer
 ```
 
-如果你的 Agent 使用不同的 Skills 目录，请放入它实际扫描的目录。安装后可能需要重新加载 Agent。
+其他平台的持久安装目录和调用方式不同，请使用其标准 Skill 安装功能或配置的 Skills 目录。安装后可能需要重新加载 Agent。
 
 ### 给 Agent 的提示词
 
@@ -158,26 +170,43 @@ This only tests whether the current network can reach the TCP port; it does not 
 
 ### First-time setup
 
-You usually install the Skill once, then call `$ssh-proxy-node-deployer` in later tasks.
+You usually install the Skill once. The persistent install location and invocation syntax depend on your agent platform.
 
-**Codex: send this prompt to your agent**
+**Generic installation prompt**
 
 ```text
-$skill-installer Install the Skill from the root of the GitHub repository 0verme/ssh-proxy-node-deployer. The entrypoint is SKILL.md and the Skill name is ssh-proxy-node-deployer. If a Skill with that name already exists, tell me how to update it; do not overwrite it.
+Install the Skill named ssh-proxy-node-deployer from the public GitHub repository
+https://github.com/0verme/ssh-proxy-node-deployer. Its entrypoint is SKILL.md at the
+repository root. Use the standard installation method for this agent platform and
+tell me how to invoke it later. If persistent installation is unsupported, read the
+file and follow it for this task only; do not claim it is installed for future
+sessions. If a Skill with that name already exists, tell me how to update it and
+do not overwrite it.
 ```
 
-After installation, invoke `$ssh-proxy-node-deployer` on your next turn.
+**Use for this task only, without persistent installation**
 
-**Other agents:** If your platform supports installing Skills from GitHub, ask it to install the root `SKILL.md`. For a one-time task, you can ask the agent to read [SKILL.md](https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md) and follow it for the current task; this does not install it persistently.
+```text
+Read https://raw.githubusercontent.com/0verme/ssh-proxy-node-deployer/main/SKILL.md
+and follow it for this task. This does not install the Skill for future sessions.
+```
 
-**Manual fallback for Codex**
+**Optional Codex shortcut**
+
+```text
+$skill-installer Install the Skill from the root of 0verme/ssh-proxy-node-deployer.
+Its entrypoint is SKILL.md and its name is ssh-proxy-node-deployer. If that Skill
+already exists, tell me how to update it; do not overwrite it.
+```
+
+Codex manual fallback:
 
 ```bash
 mkdir -p ~/.codex/skills
 git clone https://github.com/0verme/ssh-proxy-node-deployer.git ~/.codex/skills/ssh-proxy-node-deployer
 ```
 
-On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. If your agent scans a different Skills directory, use that configured path. Reload the agent if needed.
+On Windows, clone into `%USERPROFILE%\.codex\skills\ssh-proxy-node-deployer`. Other platforms use their configured Skills directory and invocation syntax. Reload the agent if needed.
 
 ### Prompt your agent
 
