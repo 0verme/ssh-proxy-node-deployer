@@ -21,6 +21,7 @@
 
 - 使用 sing-box，部署 VLESS + REALITY + Vision（TCP）和 Hysteria2（UDP）。
 - 默认使用高位端口：REALITY `46690/TCP`，Hysteria2 `46691/UDP`。如端口冲突，只为冲突的协议选择其他可用高位端口。`443` 是兼容选项，不是默认端口。
+- 部署前从实际使用的客户端网络直测 SSH `22/TCP`（或你指定的 SSH 端口），不走 SSH 跳板或应用层代理。失败只说明当前测试位置无法直连，不能单凭一次失败断定 IP 被封；会先停止部署并报告可能原因，不会自动换 IP 或切换代理。
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
 - 默认生成 Shadowrocket 链接和 Clash Verge / Mihomo 配置，保存在仓库之外的私有目录。
@@ -28,6 +29,20 @@
 - **默认不下载、不运行融合怪。** 只有你明确要求测速或机器评测时才运行；完整测试可能增加 CPU、磁盘负载和流量。
 
 高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
+
+如果 Agent 不在你实际使用的网络中，可在本机先测 SSH 端口（替换服务器 IP；自定义 SSH 端口时替换 `22`）：
+
+```powershell
+Test-NetConnection -ComputerName "SERVER_IP" -Port 22 -InformationLevel Detailed
+```
+
+macOS / Linux 可用：
+
+```bash
+nc -vz -w 5 SERVER_IP 22
+```
+
+这只检查当前网络到该 TCP 端口是否可达，不验证 SSH 用户名/密钥，也不能单独证明 IP 被封。
 
 ### 首次安装
 
@@ -74,6 +89,9 @@ SSH 端口：<端口；默认 22>
 
 先做只读检查并报告计划，再实施安全且可回滚的步骤。按默认方案使用高位端口；
 保留现有 SSH 和防火墙策略。融合怪不要运行，除非我之后明确要求。
+部署前从我实际使用的客户端网络直测 SSH 22/TCP，不走 SSH 跳板或应用层代理；
+如果你无法从我的客户端网络测试，先给我本机测试命令。测试失败时不要直接说 IP 被封，
+先停止部署并报告原因，不要自动切换代理或更换 IP。
 客户端配置请放在仓库外的私有目录，不要把密码或私钥写入聊天、仓库或日志。
 ```
 
@@ -115,6 +133,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 
 - sing-box with VLESS + REALITY + Vision over TCP and Hysteria2 over UDP.
 - High ports by default: REALITY on `46690/TCP`, Hysteria2 on `46691/UDP`. If a port is occupied, choose another available high port for that protocol only. Port `443` is an opt-in compatibility profile.
+- Before deployment, test SSH TCP/22 (or the specified SSH port) directly from the actual client network, without an SSH jump host or application proxy. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
 - Generate Shadowrocket links and a Clash Verge / Mihomo profile by default. Keep client files in a private directory outside the repository.
@@ -122,6 +141,20 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - **Fusion Monster is off by default.** Run it only when explicitly requested. A full benchmark can use CPU, disk, and network bandwidth.
 
 High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
+
+If your agent is not running on the network you will use, test the SSH port locally (replace the server IP and use your custom SSH port instead of `22` when applicable):
+
+```powershell
+Test-NetConnection -ComputerName "SERVER_IP" -Port 22 -InformationLevel Detailed
+```
+
+On macOS / Linux:
+
+```bash
+nc -vz -w 5 SERVER_IP 22
+```
+
+This only tests whether the current network can reach the TCP port; it does not validate SSH credentials or prove the IP is banned.
 
 ### First-time setup
 
@@ -159,6 +192,10 @@ SSH port: <port; default 22>
 
 Start with read-only checks and report the plan. Use the default high-port profile,
 preserve existing SSH access and firewall policy, and make reversible changes.
+Before deployment, test SSH TCP/22 directly from the client network I will use,
+without an SSH jump host or application proxy. If you cannot test from that network,
+give me a local command to run. If it fails, report that it is unreachable from this
+test location, stop deployment, and do not automatically switch proxy or IP.
 Do not run Fusion Monster unless I explicitly ask later. Save client profiles in a
 private directory outside the repository. Never put passwords or private keys in
 chat, the repository, or logs.

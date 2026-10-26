@@ -1,6 +1,6 @@
 ---
 name: ssh-proxy-node-deployer
-description: Deploy or rebuild a personal sing-box proxy node on an authorized VPS over SSH. Uses safe provider-independent discovery, password or key login, REALITY plus Hysteria2 defaults, dual-stack detection, client profiles, and optional hardening or benchmarks.
+description: Deploy or rebuild a personal sing-box proxy node on an authorized VPS over SSH. Includes direct SSH-port reachability checks, safe provider-independent discovery, key or interactive password login, REALITY plus Hysteria2 defaults, dual-stack detection, client profiles, and optional hardening or benchmarks.
 license: MIT
 ---
 
@@ -30,6 +30,17 @@ Use the defaults below whenever the user leaves a choice unspecified. Ask only f
 - Preserve the current SSH port, users, login methods, root access, and keys by default. SSH hardening is optional and requires an explicit user request.
 
 ## Workflow
+
+### 0. Check direct SSH reachability before deployment
+
+Before deployment, test the user-specified SSH port directly from the device and network they intend to use to reach the VPS (port 22 by default). If they specifically want to know whether port 22 is reachable, test 22 even when the configured SSH port differs, and report both results separately.
+
+- Use a short-timeout raw TCP probe, such as PowerShell `Test-NetConnection` on Windows or `nc` on Linux/macOS. This probe does not use SSH `ProxyCommand`/`ProxyJump` or an HTTP/SOCKS application proxy. Do not silently disable a system VPN or tunnel; if one is active, report that the path may still be routed through it. OpenSSH's `ProxyCommand=none` and `ProxyJump=none` disable those SSH proxy settings for an actual SSH probe ([OpenSSH documentation](https://man.openbsd.org/ssh_config)).
+- If given a hostname, resolve it using the local resolver and report which address/family was tested. Test IPv4 and IPv6 separately when both are expected to work. Do not send the server IP to third-party checking sites.
+- If the agent runs somewhere other than the user's client device/network, do not present that result as the user's direct-connect result. Give the user a local command to run, or clearly label the test location.
+- Report a successful TCP handshake as “reachable from this test location”; it does not prove SSH authentication will succeed or that the address is unfiltered everywhere. A refusal usually means the port is closed or actively rejected. A timeout or unreachable result is inconclusive and can come from packet loss, routing, the server/provider firewall, a local network, or filtering.
+- Never declare an IP “banned” from one failed probe. Check whether the SSH service uses a different port and whether host/cloud firewall rules or source-IP allowlists explain the result. If direct SSH access is a requirement and the port is unreachable, stop before deployment and report the evidence. Suggest one comparison from an independent network when useful; reachability from another network but not this one points to a network-specific path/filtering issue, not necessarily a globally banned IP.
+- Do not fall back to a proxy or replace the server IP automatically. Let the user choose whether to retry from another network, continue via a specified route, or ask the provider about changing the IP.
 
 ### 1. Identify the host and inspect it before changes
 
