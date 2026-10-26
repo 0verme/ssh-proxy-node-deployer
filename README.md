@@ -121,13 +121,30 @@ SSH 端口：<端口；默认 22>
 
 ### 可选功能
 
-按需明确提出即可：
+可以直接说中文功能名，也可以使用下表的功能码。复制下面的格式，并只保留你需要的项目：
 
-- 融合怪基础检查或完整评测（完整测试会产生额外负载和流量）。
-- 启用 UFW / firewalld，或加固 SSH（需要先验证备用登录并准备回滚）。
-- AnyTLS、TUIC、Shadowsocks 等额外协议、多个用户或流量统计。
-- WARP、BBR / fq、交换空间及其他网络调优。
-- sing-box 官方 API / Dashboard（1.14.0+）、第三方面板、私有订阅或二维码。启用前先检查机器资源；官方 Dashboard 默认仅监听本机并通过 SSH 隧道访问，同时必须设置非空强 API 密钥，避免把未认证接口暴露到公网。详情见 [sing-box 官方 API 文档](https://sing-box.sagernet.org/configuration/service/api/)。
+```text
+可选项：sing-box-dashboard, protocol-anytls
+```
+
+省略“可选项”或写 `可选项：无`，表示使用默认功能，不启用任何额外功能。Agent 只启用列出的项目；不认识的功能码或描述不清的范围会先向你确认。功能码不会跳过安全检查。
+
+| 功能码 | 启用内容 | 注意事项 |
+| --- | --- | --- |
+| `ports-443` | REALITY 使用 TCP/443，Hysteria2 使用 UDP/443 | 两个端口和云安全组规则分别检查；这是兼容选项，不会隐藏 IP。 |
+| `fusion-basic` | 融合怪基础检查 | 轻量、限时并关闭上传和重负载测试；运行前会告知基础 IP 查询可能把 VPS 公网 IP 发送给第三方。 |
+| `fusion-full` | 融合怪完整评测 | 会产生 CPU / 磁盘负载和额外流量。 |
+| `firewall-ufw` / `firewall-firewalld` | 配置对应的主机防火墙 | 先检查现有规则并确保 SSH 不会被锁在外面；不会盲目替换现有防火墙。 |
+| `ssh-hardening` | SSH 加固，例如禁用密码登录 | 先验证备用管理员登录并准备回滚；未说明具体改动时会先确认。 |
+| `protocol-anytls` / `protocol-tuic` / `protocol-shadowsocks` / `protocol-other` | 添加对应协议 | 使用 `protocol-other` 时需同时写明协议名称。 |
+| `multi-user` / `traffic-accounting` | 多用户凭据 / 流量或配额统计 | 统计方式可能有存储和准确性限制，部署前会说明。 |
+| `warp` | 配置 WARP | 先检查系统兼容性及路由影响。 |
+| `bbr-fq` / `swap` / `udp-buffer-tuning` | BBR/fq、交换空间 / UDP 缓冲区调优 | 检查兼容性和系统影响后再修改。 |
+| `sing-box-dashboard` | sing-box 官方 Dashboard（1.14.0+） | 先检查资源；低配机器默认不启用。使用强 API 密钥、本机监听和 SSH 隧道。直接公网开放需要单独明确要求、TLS 和严格网络限制。详见 [sing-box 官方 API 文档](https://sing-box.sagernet.org/configuration/service/api/)。 |
+| `third-party-panel` | 第三方面板 | 请同时写出面板名称；先检查资源、安装来源和访问安全。 |
+| `private-subscription` | 私有 HTTPS 订阅 | 需保持访问受控，不放入公开仓库或网页。 |
+| `qr-code` | 客户端配置二维码 | 二维码包含连接凭据，按私密配置文件同等保护。 |
+| `client-format-sing-box` / `client-format-v2rayn` | 额外导出对应客户端格式 | 默认仍提供 Shadowrocket 和 Clash Verge / Mihomo 配置。 |
 
 ### 图片与实际测试
 
@@ -250,7 +267,30 @@ configuration or firewall rules yet.
 
 ### Optional features
 
-Ask explicitly for Fusion Monster basic checks or a full benchmark, host firewall setup, SSH hardening, extra protocols, multiple users, traffic accounting, WARP, BBR / fq, swap, a private subscription, QR codes, the official sing-box API / Dashboard (1.14.0+), or a third-party management panel. Check resource headroom first. For the official Dashboard, use a non-empty strong API secret and loopback binding with an SSH tunnel by default; direct remote exposure needs TLS, strict network restrictions, and an explicit request. See the [official API documentation](https://sing-box.sagernet.org/configuration/service/api/).
+You can name a feature in plain language or copy its ID from the table below. For example:
+
+```text
+Optional features: sing-box-dashboard, protocol-anytls
+```
+
+Omit this line or write `Optional features: none` to keep the default profile without add-ons. The agent enables only the listed features. Unknown IDs or unclear scope require clarification; IDs do not bypass safety checks.
+
+| Feature ID | Enables | Notes |
+| --- | --- | --- |
+| `ports-443` | REALITY on TCP/443 and Hysteria2 on UDP/443 | Check both listeners and provider rules independently. This compatibility option does not hide the IP. |
+| `fusion-basic` | Basic Fusion Monster check | Time-limited, with uploads and heavy suites disabled. Basic IP lookups may send the VPS public IP to third parties; the agent will tell you before running it. |
+| `fusion-full` | Full Fusion Monster benchmark | Adds CPU/disk load and network traffic. |
+| `firewall-ufw` / `firewall-firewalld` | Configure the named host firewall | Check existing rules and preserve SSH access; do not blindly replace an existing firewall. |
+| `ssh-hardening` | SSH hardening, such as disabling password login | Test alternate administrator access and prepare rollback first; clarify unspecified changes. |
+| `protocol-anytls` / `protocol-tuic` / `protocol-shadowsocks` / `protocol-other` | Add the named protocol | Name the protocol when using `protocol-other`. |
+| `multi-user` / `traffic-accounting` | Multiple user credentials / traffic or quota tracking | Explain storage and accuracy limits before choosing an accounting method. |
+| `warp` | Configure WARP | Check system compatibility and routing impact first. |
+| `bbr-fq` / `swap` / `udp-buffer-tuning` | BBR/fq, swap, or UDP buffer tuning | Check compatibility and system-wide effects before changes. |
+| `sing-box-dashboard` | Official sing-box Dashboard (1.14.0+) | Check resources; keep it off on low-resource hosts by default. Use a strong API secret, loopback binding, and SSH tunnel. Direct public exposure needs a separate explicit request, TLS, and strict network restrictions. See the [official API documentation](https://sing-box.sagernet.org/configuration/service/api/). |
+| `third-party-panel` | A third-party panel | Name the panel; check resources, installation source, and access security first. |
+| `private-subscription` | Private HTTPS subscription | Keep access controlled and out of public repositories and pages. |
+| `qr-code` | Client configuration QR codes | QR codes contain credentials; protect them like private client files. |
+| `client-format-sing-box` / `client-format-v2rayn` | Export the additional client format | Shadowrocket and Clash Verge / Mihomo remain the defaults. |
 
 ### Screenshots and real-world validation
 
@@ -272,5 +312,4 @@ Use this only on servers you own or are authorized to administer. Before sharing
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
 

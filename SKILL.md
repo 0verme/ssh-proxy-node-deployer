@@ -85,18 +85,24 @@ Full benchmark mode is opt-in. It can create CPU/disk load and consume substanti
 
 ## Optional features
 
-Enable only when the user asks:
+The README lists stable feature IDs. The user can write `可选项：feature-id, feature-id` or `Optional features: feature-id, feature-id`; ordinary language requests count too. Enable only the named options. An omitted list, an empty list, or `无` / `none` means keep the default profile with no optional features. If an ID is unknown or its requested scope is unclear, ask instead of guessing. Feature IDs do not bypass the safety checks below or elsewhere in this skill.
 
-- Full Fusion Monster benchmarks or other high-traffic/CPU/disk tests.
-- UFW/firewalld installation and activation when the server currently has no host firewall.
-- SSH hardening (new administrator, key-only login, disabling root/password login), after the replacement login has been tested and rollback is ready.
-- Private HTTPS subscription or QR codes. (A domain-backed ACME certificate remains the default when the user provides domain and DNS control.)
-- The sing-box API/Dashboard (1.14.0+) or a third-party management panel. Check resource headroom first; keep it off on low-resource hosts unless the user explicitly accepts the trade-off. For the official Dashboard, use a non-empty strong API secret and loopback binding with an SSH tunnel by default. Any direct remote exposure needs TLS, strict network restrictions, and an explicit user request.
-- AnyTLS, TUIC, Shadowsocks, or other protocols beyond the default REALITY + Hysteria2 pair.
-- WARP, BBR/fq, swap, UDP buffer changes, or other performance/network tuning.
-- Additional users, per-user credentials, quotas, or traffic accounting.
+Supported IDs:
+
+- `ports-443`: use TCP/443 for REALITY and UDP/443 for Hysteria2. Check both listeners and provider rules independently; this is a compatibility choice, not an IP-hiding or security guarantee.
+- `fusion-basic`: run the documented, time-limited basic Fusion Monster check with upload and heavy suites disabled. Tell the user first that basic IP lookups may send the VPS public IP to third-party services.
+- `fusion-full`: run a full benchmark only after explaining that it can load CPU/disk and consume substantial bandwidth. Never publish results unless separately asked.
+- `firewall-ufw` / `firewall-firewalld`: set up the named host firewall only after checking current rules and preserving SSH access; do not replace an existing firewall blindly.
+- `ssh-hardening`: harden SSH only after testing an alternate administrator login and preparing rollback. Confirm the intended changes if the user has not specified them.
+- `protocol-anytls`, `protocol-tuic`, `protocol-shadowsocks`: add the named protocol. `protocol-other` requires the user to name the protocol.
+- `multi-user`: add multiple users and separate credentials. `traffic-accounting`: add traffic/quota tracking; explain storage and accuracy limits before choosing a method.
+- `warp`: configure WARP. `bbr-fq`: apply BBR/fq tuning. `swap`: configure swap. `udp-buffer-tuning`: change UDP buffer settings. Check compatibility and impact before applying system-wide changes.
+- `sing-box-dashboard`: enable the official Dashboard only on sing-box 1.14.0 or later. Check resource headroom; keep it off on low-resource hosts unless the user explicitly accepts the trade-off. Require a strong, non-empty API secret and loopback binding with SSH-tunnel access by default. Direct remote exposure still requires a separate explicit request, TLS, and strict network restrictions.
+- `third-party-panel`: install a third-party panel only when the user names the panel or approves a clearly described choice. Check resources, supported installation method, and exposure/security requirements first.
+- `private-subscription`: create a private HTTPS subscription; keep it access-controlled and out of public repositories/pages. A domain-backed ACME certificate remains the default when the user provides a domain and controls its DNS.
+- `qr-code`: generate QR codes for client configurations; treat them as credentials and save/share them only through the same private path as client files.
+- `client-format-sing-box`, `client-format-v2rayn`: additionally export the named client format.
 
 ## Finish with a concise report
 
 Summarize the detected OS, sing-box version, addresses actually usable, selected ports, firewall/provider rules, backup/config paths, client files, and validation results. State which checks were external versus server-side. Call out any optional feature that was skipped and why. Redact passwords and private keys.
-
