@@ -251,7 +251,19 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 
 ### 图片与实际测试
 
-上方图片是工作流程示意图，不是某台服务器的测试结果。真实部署截图、客户端连通截图和融合怪输出会在完成真实机器测试后补充；本仓库不会用虚构结果冒充实测。
+上方的 SVG 仅为部署流程示意。以下截图来自实际使用 Skill 的会话，展示当时可见的操作和回复；其中部署、客户端检查及性能结果是该会话的报告，本次 README 更新未独立重跑 VPS、客户端或基准测试。
+
+<p align="center"><img src="assets/screenshots/01-skill-read-in-current-task.png" alt="读取并遵循当前任务中的 Skill 说明" width="900"></p>
+
+<p align="center"><em>1. 读取并在当前任务中遵循仓库的 SKILL.md；截图明确说明未安装到后续会话。</em></p>
+
+<p align="center"><img src="assets/screenshots/02-expert-mode-vps-deployment.png" alt="高手模式 VPS 部署及 Mihomo 配置检查的会话记录" width="900"></p>
+
+<p align="center"><em>2. 高手模式部署记录：截图中的回复报告 sing-box 部署完成、Mihomo IPv4/IPv6 连通测试与本机配置校验通过；Shadowrocket 链接已生成，但未在 iOS 导入验证。</em></p>
+
+<p align="center"><img src="assets/screenshots/03-fusion-monster-benchmark.png" alt="融合怪完整性能测试报告" width="900"></p>
+
+<p align="center"><em>3. 融合怪完整性能测试记录：回复报告运行约 8 分 7 秒，并列出 CPU、内存、磁盘和网络指标；具体数值见图。</em></p>
 
 ### 适用范围
 
@@ -544,7 +556,19 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 
 ### Screenshots and real-world validation
 
-The image above is a workflow illustration, not a test result from a VPS. Real deployment screenshots, client connectivity evidence, and Fusion Monster output will be added after testing on an actual machine. No synthetic output is presented as real evidence.
+The SVG above is a workflow illustration. The screenshots below were captured during actual use of the Skill. They show the visible steps and the assistant's reports; this README update did not independently rerun the VPS, client checks, or benchmark.
+
+<p align="center"><img src="assets/screenshots/01-skill-read-in-current-task.png" alt="Reading and following the Skill instructions for the current task" width="900"></p>
+
+<p align="center"><em>1. The repository's SKILL.md was read and followed for the current task; the screenshot says it was not installed for future sessions.</em></p>
+
+<p align="center"><img src="assets/screenshots/02-expert-mode-vps-deployment.png" alt="Expert-mode VPS deployment and Mihomo profile-check conversation" width="900"></p>
+
+<p align="center"><em>2. Expert-mode deployment report: the assistant reports sing-box deployment and successful Mihomo IPv4/IPv6 connectivity and local profile checks. A Shadowrocket link was generated but not imported on iOS.</em></p>
+
+<p align="center"><img src="assets/screenshots/03-fusion-monster-benchmark.png" alt="Fusion Monster full benchmark report" width="900"></p>
+
+<p align="center"><em>3. Fusion Monster full benchmark report: the assistant reports a run of about 8 minutes 7 seconds and lists CPU, memory, disk, and network results; see the image for reported figures.</em></p>
 
 ### Scope
 
