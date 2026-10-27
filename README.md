@@ -44,6 +44,22 @@ nc -vz -w 5 SERVER_IP 22
 
 这只检查当前网络到该 TCP 端口是否可达，不验证 SSH 用户名/密钥，也不能单独证明 IP 被封。
 
+### SSH 预检查：TCP、认证与 Agent 分开
+
+高手模式按顺序分别检查原始 TCP 直连和 SSH 认证。先按现有 SSH Host 配置中的目标主机与端口做原始 TCP 测试；自定义端口使用配置端口，只有你特别询问 `22` 时才额外测 `22`。TCP 探测不经过 `ProxyJump`，认证成功也不能代替直连检查；若原始 TCP 检查按上述安全策略失败，就停止部署并分别报告结果。
+
+TCP 检查通过后，先运行：
+
+```powershell
+ssh -o BatchMode=yes -o ConnectTimeout=10 YOUR_SSH_HOST "whoami && hostname"
+```
+
+将 `YOUR_SSH_HOST` 替换为已有的 SSH Config `Host` 别名。OpenSSH 会按现有配置使用 `IdentityFile`、证书、可用的 SSH Agent 或系统默认密钥；配置了 `ProxyJump` 时，此 SSH 认证命令仍按配置连接。非交互认证成功即可继续，Agent 停止或不可用不能单独阻断流程。
+
+认证失败时，分别报告连接超时、Host Key 验证异常、`Permission denied` 或其他错误，然后停止；不要自动改 SSH 配置、接受未知指纹、关闭 Host Key 检查或尝试绕过认证。Agent 状态只是可选诊断，不得自动启动或设为必需条件。不要输出、复制或上传私钥和密码。`ProxyJump` 下认证成功仍不代表目标主机的原始 TCP 直连成功。
+
+完整的复现步骤和验收矩阵见[SSH 预检查验收用例](tests/ssh-preflight-acceptance.md)。
+
 ### 首次安装
 
 通常只需安装一次；后续调用方式由 Agent 平台决定。
@@ -108,7 +124,7 @@ SSH_USER=<初始 SSH 用户名>
 SSH_PORT=<SSH 端口，例如 22>
 CLIENT=<客户端名称>
 
-先从我实际使用的网络直测指定 SSH 端口，不走 SSH 跳板或应用层代理；若不是 22，也单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果；测试失败就停止并报告，不要推断 IP 被封或切换代理。
+先从我实际使用的网络直测指定 SSH 端口，不走 SSH 跳板或应用层代理；只有我另行要求时才单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果；测试失败就停止并报告，不要推断 IP 被封或切换代理。
 先只读检查并展示部署计划，再按 Skill 安全流程执行。密码不得出现在聊天中；通过连通性检查后，如需密码，只能使用不记录的安全交互终端，无法安全输入时让我通过安全 TTY 输入。
 只用新手模式默认功能，不询问或启用高级选项；客户端配置保存到仓库外的私有目录。
 ```
@@ -116,8 +132,8 @@ CLIENT=<客户端名称>
 **高手模式**（填写已有 SSH Config Host 别名）：
 
 ```text
-使用 ssh-proxy-node-deployer Skill 部署我有权管理的 VPS。已选择高手模式；SSH_HOST=<现有 SSH Config 中的 Host 别名>，OPTIONAL_FEATURES=none。复用该配置中的用户、密钥和 SSH Agent，不要重复询问已填写信息；只有必需参数缺失或无效时才询问，不得猜测。
-先从我实际使用的网络直测该 SSH 目标的端口，不走 SSH 跳板或应用层代理；若不是 22，也单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果。测试失败就停止并报告，不要推断 IP 被封或切换代理。
+使用 ssh-proxy-node-deployer Skill 部署我有权管理的 VPS。已选择高手模式；SSH_HOST=<现有 SSH Config 中的 Host 别名>，OPTIONAL_FEATURES=none。复用该配置中的用户、IdentityFile、可用的 SSH Agent 或系统默认密钥；Agent 不是必需条件。不要重复询问已填写信息；只有必需参数缺失或无效时才询问，不得猜测。
+先从我实际使用的网络直测该 SSH 目标的端口，不走 SSH 跳板或应用层代理；只有我另行要求时才单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果。测试失败就停止并报告，不要推断 IP 被封或切换代理。
 先只读检查并展示部署计划，再按 Skill 安全流程执行。不要在聊天中收集密码；如需密码，只能在连通性检查后通过不记录的安全交互终端输入。默认保留账户和 SSH 设置；不启用任何未列出的可选功能。
 ```
 
@@ -137,7 +153,7 @@ CLIENT=<客户端名称>
 然后按所选模式继续：
 
 - **新手模式：**提供服务器地址、初始 SSH 用户名和端口。账户分支只看最初登录身份，即使之后使用 `sudo` 或 `su` 也不改变判断。初始用户为 `root` 时，先只读检查系统、SSH、用户和 sudo 配置；`vps` 不存在才创建，已存在则审计并原样复用；若现有认证或 sudo 不可用、有冲突，就停止报告，不覆盖密码、密钥、用户组或设置。仅为新建的 `vps` 安全生成至少 24 字符随机密码并通过不记录的安全 TTY 设置和交付，配置专用 Ed25519 公钥及需密码验证的 sudo。保持原 root 登录可用，并从独立 SSH 会话验证 `vps` 登录和 sudo。初始用户不是 `root`（如 `ubuntu`、`debian`、`overme` 或 `vps`）时，直接复用原用户，不创建 `vps`，不改用户名、密码、密钥、用户组或 SSH 策略，只检查所需 sudo 权限。新手模式使用默认节点功能，不询问高级参数。
-- **高手模式：**提供已有 SSH Host 别名或目标，默认复用当前 SSH 用户、认证和账户设置；优先使用已有非 root 操作用户，不会默默创建账户。如果只有 root 登录且没有已配置的非 root 用户，就报告所需权限并停止，除非你明确要求以 root 操作并提供可验证的恢复方案。高手模式可自定义 SSH 主机/端口/别名/密钥、管理用户名及账户创建策略、sudo/root SSH 策略、SSH 密码认证，以及 REALITY、Hysteria2 和其他协议、监听端口、IPv4/IPv6、防火墙、域名/TLS、WARP、BBR、融合怪和面板；未明确提出账户改动时保持现状。
+- **高手模式：**提供已有 SSH Host 别名或目标，默认复用当前 SSH 用户、认证和账户设置；OpenSSH 按现有配置使用 IdentityFile、证书、可用的 SSH Agent 或系统默认密钥，Agent 停止不构成阻断条件。优先使用已有非 root 操作用户，不会默默创建账户。如果只有 root 登录且没有已配置的非 root 用户，就报告所需权限并停止，除非你明确要求以 root 操作并提供可验证的恢复方案。高手模式可自定义 SSH 主机/端口/别名/密钥、管理用户名及账户创建策略、sudo/root SSH 策略、SSH 密码认证，以及 REALITY、Hysteria2 和其他协议、监听端口、IPv4/IPv6、防火墙、域名/TLS、WARP、BBR、融合怪和面板；未明确提出账户改动时保持现状。
 
 Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；root 初始登录的新手流程只在检查和初始化期间使用 root，验证 `vps` 后切换到 `vps`。
 
@@ -150,9 +166,9 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 开始前先问我选择“新手模式”或“高手模式”；如果我已经选过，就不要重复问。
 选择后只询问该模式需要的连接信息：新手模式询问服务器地址、用户名和 SSH 端口；高手模式询问已有 SSH Host 别名或目标。
 生成客户端配置前，询问我使用什么客户端（可多选：Shadowrocket、Clash Verge / Mihomo、sing-box、v2rayN 或其他客户端）。如果我不确定，先问设备系统，核实兼容性后给我建议并等待确认；只生成我选择的客户端格式。
-在任何密码输入前，从我实际使用的客户端网络直测指定的 SSH 端口（默认 22/TCP），不走 SSH 跳板或应用层代理；如果指定端口不是 22，也单独测试 22/TCP。如果你无法从我的客户端网络测试，先给我本机测试命令并等待结果。测试失败时不要直接说 IP 被封，先停止部署并报告原因，不要自动切换代理或更换 IP。
+在任何密码输入前，从我实际使用的客户端网络直测指定的 SSH 端口（默认 22/TCP），不走 SSH 跳板或应用层代理；只有我另行要求时才单独测试 22/TCP。如果你无法从我的客户端网络测试，先给我本机测试命令并等待结果。测试失败时不要直接说 IP 被封，先停止部署并报告原因，不要自动切换代理或更换 IP。
 新手模式：分支依据必须是初始 SSH 登录用户名，记录后不得用 sudo/su 后的身份重新判断。初始用户为 root 时，先只读检查 SSH、账户和 sudo 环境并报告计划；不存在 vps 才创建普通管理用户，已存在则审计并原样复用其现有认证和 sudo；现有访问或权限缺失、有冲突时停止报告，不覆盖已有设置。仅为新建的 vps 安全生成至少 24 字符随机密码，供本地账户认证和 sudo 使用（SSH 使用专用密钥），通过不记录的安全 TTY 设置和交付；若做不到，要求我在安全 TTY 自行设置。仅为新建的 vps 配置专用 Ed25519 密钥，私钥保存在本机 `~/.ssh/ssh-proxy-node-deployer/` 并限制权限；只向服务器追加公钥，不覆盖 authorized_keys 或本地文件；新增不冲突的 `~/.ssh/config` 别名，包含主机、vps 用户、端口、密钥路径和 `IdentitiesOnly yes`，保留原条目。配置需密码的 sudo，禁止 NOPASSWD: ALL。保持 root 会话打开，通过独立 SSH 会话验证 vps 公钥登录和 sudo 后再部署。初始用户不是 root 时，原样复用 ubuntu、debian、overme、vps 等当前用户，不创建 vps、不改用户、密码、密钥、用户组或 SSH 设置，只检查 sudo；权限不足则报告并停止。
-高手模式：默认复用我提供的 SSH Host、用户、密钥/Agent 和账户策略；优先使用已有非 root 操作用户，不会默默创建账户。只有我明确要求时才创建或修改指定账户；可自定义 SSH 连接、账户创建策略、sudo/root 登录、密码认证和节点高级功能。
+高手模式：默认复用我提供的 SSH Host、用户、IdentityFile、可用的 SSH Agent、系统默认密钥和账户策略；Agent 不是必需条件。先单独做原始 TCP 直连测试，再运行 `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` 验证非交互认证。认证成功即通过认证预检；失败时区分超时、Host Key 异常、Permission denied 和其他错误并停止，不自动改配置或接受未知指纹。优先使用已有非 root 操作用户，不会默默创建账户。只有我明确要求时才创建或修改指定账户；可自定义 SSH 连接、账户创建策略、sudo/root 登录、密码认证和节点高级功能。
 只有高手模式询问高级设置；新手模式只用默认基础功能。默认不启用可选项、不运行融合怪、不安装面板。
 
 严格按顺序执行：连接验证 → 只读检查 → 展示计划 → 必要的账户初始化 → 独立 SSH / sudo 验证 → 节点部署 → 最终验收。不得运行未经审查的远程一键安装脚本，也不得将远程内容直接管道给 Shell；保留现有 SSH 和防火墙策略。任何 SSH 配置变更都要先做语法检查并准备已验证的恢复与回滚路径。禁用 Root SSH 登录必须经过明确确认和备用管理员独立验证；永不删除 root 系统账户，也不盲目修改防火墙。按默认方案使用高位端口。
@@ -231,7 +247,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 
 - sing-box with VLESS + REALITY + Vision over TCP and Hysteria2 over UDP.
 - High ports by default: REALITY on `46690/TCP`, Hysteria2 on `46691/UDP`. If a port is occupied, choose another available high port for that protocol only. Port `443` is an opt-in compatibility profile.
-- Before deployment, test SSH TCP/22 (or the specified SSH port) directly from the actual client network, without an SSH jump host or application proxy. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
+- Before deployment, test SSH TCP/22 (or the configured SSH port) directly from the actual client network, without an SSH jump host or application proxy. Separately, in Expert mode, first try `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` using the existing SSH Host configuration. OpenSSH may use IdentityFile, the Agent when available, default keys, and configured ProxyJump for authentication; a stopped Agent is not a blocker when authentication succeeds. TCP success does not prove authentication, and authentication through ProxyJump does not prove direct TCP reachability. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
 - Ask which client app(s) the user uses; generate only the corresponding supported profile format(s). Keep client files in a private directory outside the repository.
@@ -253,6 +269,22 @@ nc -vz -w 5 SERVER_IP 22
 ```
 
 This only tests whether the current network can reach the TCP port; it does not validate SSH credentials or prove the IP is banned.
+
+### SSH preflight: keep TCP, authentication, and Agent checks separate
+
+In Expert mode, check raw TCP reachability and SSH authentication as separate steps. First test the target host and port from the existing SSH Host configuration; use its custom port, and test port 22 separately only when specifically requested. The raw TCP probe does not use `ProxyJump`. SSH authentication success cannot replace the direct-connect check; if raw TCP fails under the safety policy above, stop deployment and report both results separately.
+
+After TCP passes, first run:
+
+```powershell
+ssh -o BatchMode=yes -o ConnectTimeout=10 YOUR_SSH_HOST "whoami && hostname"
+```
+
+Replace `YOUR_SSH_HOST` with the existing OpenSSH Config `Host` alias. OpenSSH uses its configured `IdentityFile`, certificates, available SSH Agent, or standard default keys. If configured, `ProxyJump` remains active for this SSH authentication command. A successful non-interactive login passes the authentication check; a stopped or unavailable Agent is not a blocker.
+
+On failure, distinguish timeout, host-key verification errors, `Permission denied`, and other errors, then stop. Do not edit SSH configuration, accept an unknown fingerprint, disable host-key checking, or bypass authentication automatically. Agent status is optional diagnostic information and must never be made a prerequisite. Never print, copy, or upload private keys or passwords. Authentication through `ProxyJump` still does not prove direct TCP reachability to the target.
+
+See the [SSH preflight acceptance cases](tests/ssh-preflight-acceptance.md) for reproducible steps and the acceptance matrix.
 
 ### First-time setup
 
@@ -313,7 +345,7 @@ SSH_USER=<initial SSH username>
 SSH_PORT=<SSH port, for example 22>
 CLIENT=<client app>
 
-First test the specified SSH port directly from the network I will use, without an SSH jump host or application proxy; if it is not 22, also test TCP/22. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
+First test the specified SSH port directly from the network I will use, without an SSH jump host or application proxy; test TCP/22 separately only when I specifically ask. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
 Perform read-only checks and show the deployment plan first, then follow the Skill's safety process. Never put passwords in chat. After reachability is checked, enter a password only through a non-recording secure interactive terminal; if safe entry is unavailable, ask me to enter it through a secure TTY.
 Use Beginner defaults only: do not ask about or enable advanced options. Save client files in a private directory outside the repository.
 ```
@@ -321,8 +353,8 @@ Use Beginner defaults only: do not ask about or enable advanced options. Save cl
 **Expert mode** (fill in an existing SSH Config Host alias):
 
 ```text
-Use the ssh-proxy-node-deployer Skill to deploy a VPS I own or am authorized to administer. Expert mode is selected; SSH_HOST=<Host alias from my existing SSH Config>, OPTIONAL_FEATURES=none. Reuse its configured user, key, and SSH Agent. Do not ask again for completed values; ask only for required values that are missing or invalid, and do not guess.
-First test the SSH target's port directly from the network I will use, without an SSH jump host or application proxy; if it is not 22, also test TCP/22. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
+Use the ssh-proxy-node-deployer Skill to deploy a VPS I own or am authorized to administer. Expert mode is selected; SSH_HOST=<Host alias from my existing SSH Config>, OPTIONAL_FEATURES=none. Reuse its configured user, IdentityFile, SSH Agent when available, and standard default keys; the Agent is optional. Do not ask again for completed values; ask only for required values that are missing or invalid, and do not guess.
+First test the SSH target's port directly from the network I will use, without an SSH jump host or application proxy; test TCP/22 separately only when I specifically ask. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
 Perform read-only checks and show the deployment plan first, then follow the Skill's safety process. Never collect passwords in chat; after reachability is checked, enter a password only through a non-recording secure interactive terminal. Preserve account and SSH settings by default; do not enable unlisted optional features.
 ```
 
@@ -344,7 +376,7 @@ Which connection mode do you want?
 Then it follows the selected mode and asks which client app(s) you use before generating files. You can choose more than one: Shadowrocket, Clash Verge / Mihomo, sing-box, v2rayN, or another named client. If you are unsure, tell the agent your device operating system so it can check compatibility, recommend an option, and wait for your confirmation.
 
 - **Beginner mode:** provide the server address, initial SSH username, and port. The initial login identity controls the account branch, even after `sudo` or `su`. If it is `root`, the agent audits the host and creates `vps` only when absent; an existing `vps` is reused with its current working authentication and sudo, without overwriting settings, and missing access or conflicts stop the run. Only a new `vps` gets a cryptographically random password of at least 24 characters through a non-recording secure terminal, a dedicated Ed25519 SSH key, and password-required sudo. A fresh independent SSH session must verify key login and sudo before deployment. If the initial user is not root, reuse that exact account without creating `vps` or changing its name, password, keys, groups, or SSH policy; check sudo and stop if it is insufficient. Beginner mode uses defaults and asks no advanced questions.
-- **Expert mode:** provide an existing SSH Host alias or configured target. Reuse the current SSH user, key/agent, and account policy by default; prefer an existing non-root operating account. If only root exists, report the need for non-root access and stop unless I explicitly request root operation. Create or modify a named account only when explicitly requested. Expert mode supports custom SSH host/port/alias/key, account strategy, sudo/root/password-authentication policy, protocols, ports, IP families, firewall, certificates, WARP, BBR, Fusion Monster, and panels.
+- **Expert mode:** provide an existing SSH Host alias or configured target. Reuse the current SSH user, IdentityFile, SSH Agent when available, standard default keys, and account policy by default; a stopped Agent is not a blocker when another configured method succeeds; prefer an existing non-root operating account. If only root exists, report the need for non-root access and stop unless I explicitly request root operation. Create or modify a named account only when explicitly requested. Expert mode supports custom SSH host/port/alias/key, account strategy, sudo/root/password-authentication policy, protocols, ports, IP families, firewall, certificates, WARP, BBR, Fusion Monster, and panels.
 
 The agent runs remote work as a non-root user and uses `sudo` only for needed system commands. In Beginner mode starting from root, the root connection is used for the audit and account bootstrap; switch to `vps` after its independent login check passes.
 
@@ -376,7 +408,7 @@ client. If I am unsure, ask my device operating system, check current compatibil
 recommend an option, and wait for my confirmation. Generate only the selected formats.
 Before any password entry, test the configured SSH port directly from the client
 network I will use, without an SSH jump host or application proxy. If the configured
-port is not 22, test TCP/22 separately. If you cannot test from that network, give
+port is not 22, test TCP/22 separately only when I specifically ask. If you cannot test from that network, give
 me a local command and wait. If it fails, report that it is unreachable from this
 test location, stop, and do not automatically switch proxy or IP.
 Beginner mode: choose account handling from the initial SSH login identity
@@ -394,7 +426,7 @@ while keeping the original root session open. If the initial user is not root,
 reuse that exact user; do not create `vps` or modify its username, password,
 keys, groups, or SSH policy. Check sudo and stop if insufficient. Never use
 `NOPASSWD: ALL`. Beginner mode uses default node features only.
-Expert mode: reuse the configured SSH Host, user, key, or agent and existing
+Expert mode: reuse the configured SSH Host, user, IdentityFile, SSH Agent when available, standard default keys, and existing
 account policy by default. Prefer an existing non-root operating account; if
 only root is available, report the need and stop unless I explicitly request
 root operation. Create or modify a named account only when I explicitly request it.
