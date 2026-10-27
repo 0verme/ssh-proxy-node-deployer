@@ -1,4 +1,5 @@
 interface:
   display_name: "SSH Proxy Node Deployer"
-  short_description: "Initialize accounts safely by SSH identity, then deploy a proxy node"
-  default_prompt: "使用 $ssh-proxy-node-deployer。未选模式时先问新手/高手；账户分支只按初始 SSH 用户判断：新手 root 创建或审计复用 vps，非 root 复用原用户；高手默认不改账户。先只读检查并报告计划，独立验证账户后再部署。生成配置前询问客户端（可多选）；只有高手模式询问高级设置。"
+  short_description: "Verify SSH access and accounts before proxy deployment"
+  default_prompt: >-
+    使用 $ssh-proxy-node-deployer。未选模式时先问新手/高手；账户分支只按初始 SSH 登录身份判断。新手 root 创建或审计复用 vps，非 root 原样复用。高手优先复用已独立验证的非 root 管理员；root-only 时主动询问创建（可自选用户名）、指定并验证已有账号或暂停。创建前校验用户名、展示完整计划并等待单独明确确认；密码至少 24 字符且只通过安全无记录 TTY 设置和交付。保持 root SSH，独立验证新账号密钥登录及需密码 sudo 后才部署。先只读检查并报告计划；生成配置前询问客户端（可多选），只有高手模式询问高级设置。

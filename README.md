@@ -25,7 +25,7 @@
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
 - 问答时询问你使用的客户端（可多选），只生成相应且受支持的配置格式；客户端文件保存在仓库之外的私有目录。
-- 默认保留现有 SSH 访问路径、主机防火墙策略和其他服务；新手模式仅在初始 SSH 用户为 `root` 时创建或安全复用 `vps`，非 root 用户直接复用；高手模式默认不改账户。不会重启整台机器。sing-box API / Dashboard 和第三方面板默认关闭。
+- 默认保留现有 SSH 访问路径、主机防火墙策略和其他服务；新手模式仅在初始 SSH 用户为 `root` 时创建或安全复用 `vps`，非 root 用户直接复用；高手模式优先复用已验证的非 root 管理员。高手模式若初始登录为 `root` 且没有可独立验证的非 root 管理员，会询问创建自定义用户名、指定已有账号验证或暂停；新账号必须先展示计划并获得单独明确确认。不会默认禁用 root SSH、启用 SSH 密码认证或重启机器。sing-box API / Dashboard 和第三方面板默认关闭。
 - **默认不下载、不运行融合怪。** 只有高手模式明确要求测速或机器评测时才运行；新手模式始终跳过。完整测试可能增加 CPU、磁盘负载和流量。
 
 高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
@@ -129,12 +129,13 @@ CLIENT=<客户端名称>
 只用新手模式默认功能，不询问或启用高级选项；客户端配置保存到仓库外的私有目录。
 ```
 
-**高手模式**（填写已有 SSH Config Host 别名）：
+**高手模式**（填写已有 SSH Config Host 别名；root-only 时可初始化自定义管理员）：
 
 ```text
 使用 ssh-proxy-node-deployer Skill 部署我有权管理的 VPS。已选择高手模式；SSH_HOST=<现有 SSH Config 中的 Host 别名>，OPTIONAL_FEATURES=none。复用该配置中的用户、IdentityFile、可用的 SSH Agent 或系统默认密钥；Agent 不是必需条件。不要重复询问已填写信息；只有必需参数缺失或无效时才询问，不得猜测。
 先从我实际使用的网络直测该 SSH 目标的端口，不走 SSH 跳板或应用层代理；只有我另行要求时才单独测试 22/TCP。无法从该网络测试时，给我本机命令并等待结果。测试失败就停止并报告，不要推断 IP 被封或切换代理。
-先只读检查并展示部署计划，再按 Skill 安全流程执行。不要在聊天中收集密码；如需密码，只能在连通性检查后通过不记录的安全交互终端输入。默认保留账户和 SSH 设置；不启用任何未列出的可选功能。
+先记录初始 SSH 登录身份并完成只读审计。若当前为 root 且没有已配置并可独立验证的非 root 管理员，主动询问：创建管理员（推荐）、指定并验证已有管理员、或暂停。创建时允许我输入用户名；展示账号、至少 24 字符自动生成密码（仅通过安全无记录 TTY 设置和交付，不展示在聊天）、专用 Ed25519 密钥、需密码 sudo、SSH 别名以及保留 root 登录的计划，并等待我单独确认后才写入。取消或未确认时不改账号、不部署。复用现有账号时不覆盖凭据或策略。
+不要在聊天中收集密码；如安全 TTY 不能设置并交付自动生成的密码，让我通过安全 TTY 自行设置，否则停止。保持原 root 会话可用，通过独立 SSH 连接先验证新账号密钥身份，再检查 `sudo -l`、清除 sudo 缓存并交互验证需密码的 `sudo -v`。两项验证成功后才用新管理员继续部署。默认不启用 SSH 密码认证、不禁用 root SSH；不启用任何未列出的可选功能。
 ```
 
 <details>
@@ -147,13 +148,26 @@ CLIENT=<客户端名称>
 ```text
 你想用哪种方式连接服务器？
 1. 新手模式：按初始 SSH 用户身份创建/复用 `vps` 或复用当前用户，并部署默认节点。
-2. 高手模式：我已经配置好 SSH，请直接复用。
+2. 高手模式：复用现有 SSH；如果只有 root 登录，可选择初始化非 root 管理员或暂停，并自定义高级选项。
 ```
 
 然后按所选模式继续：
 
-- **新手模式：**提供服务器地址、初始 SSH 用户名和端口。账户分支只看最初登录身份，即使之后使用 `sudo` 或 `su` 也不改变判断。初始用户为 `root` 时，先只读检查系统、SSH、用户和 sudo 配置；`vps` 不存在才创建，已存在则审计并原样复用；若现有认证或 sudo 不可用、有冲突，就停止报告，不覆盖密码、密钥、用户组或设置。仅为新建的 `vps` 安全生成至少 24 字符随机密码并通过不记录的安全 TTY 设置和交付，配置专用 Ed25519 公钥及需密码验证的 sudo。保持原 root 登录可用，并从独立 SSH 会话验证 `vps` 登录和 sudo。初始用户不是 `root`（如 `ubuntu`、`debian`、`overme` 或 `vps`）时，直接复用原用户，不创建 `vps`，不改用户名、密码、密钥、用户组或 SSH 策略，只检查所需 sudo 权限。新手模式使用默认节点功能，不询问高级参数。
-- **高手模式：**提供已有 SSH Host 别名或目标，默认复用当前 SSH 用户、认证和账户设置；OpenSSH 按现有配置使用 IdentityFile、证书、可用的 SSH Agent 或系统默认密钥，Agent 停止不构成阻断条件。优先使用已有非 root 操作用户，不会默默创建账户。如果只有 root 登录且没有已配置的非 root 用户，就报告所需权限并停止，除非你明确要求以 root 操作并提供可验证的恢复方案。高手模式可自定义 SSH 主机/端口/别名/密钥、管理用户名及账户创建策略、sudo/root SSH 策略、SSH 密码认证，以及 REALITY、Hysteria2 和其他协议、监听端口、IPv4/IPv6、防火墙、域名/TLS、WARP、BBR、融合怪和面板；未明确提出账户改动时保持现状。
+- **新手模式：**提供服务器地址、初始 SSH 用户名和端口。账户分支只看最初登录身份，即使之后使用 `sudo` 或 `su` 也不改变判断。为本次部署明确选择新手模式，仅授权其已说明的 `root` → `vps` 默认初始化；仅有 root 登录或仅提出部署请求不代表授权账号写入。初始用户为 `root` 时，先只读检查系统、SSH、用户和 sudo 配置并展示计划；`vps` 不存在才创建，已存在则审计并原样复用；若现有认证或 sudo 不可用、有冲突，就停止报告，不覆盖密码、密钥、用户组或设置。仅为新建的 `vps` 安全生成至少 24 字符随机密码并通过不记录的安全 TTY 设置和交付，配置专用 Ed25519 公钥及需密码验证的 sudo。保持原 root 登录可用，并从独立 SSH 会话验证 `vps` 登录和 sudo。初始用户不是 `root`（如 `ubuntu`、`debian`、`overme` 或 `vps`）时，直接复用原用户，不创建 `vps`，不改用户名、密码、密钥、用户组或 SSH 策略，只检查所需 sudo 权限。新手模式使用默认节点功能，不询问高级参数。
+- **高手模式：**提供已有 SSH Host 别名或目标，默认复用当前 SSH 用户、认证和账户设置；OpenSSH 按现有配置使用 IdentityFile、证书、可用的 SSH Agent 或系统默认密钥，Agent 停止不构成阻断条件。优先复用能独立验证 SSH 密钥登录和需密码 sudo 的非 root 管理员。若初始 SSH 用户是 `root` 且没有可用的非 root 管理员，Agent 会主动让你选择：创建新管理员（推荐）、指定并验证现有管理员，或暂停部署。创建时你可以指定用户名（例如 `vps`），Agent 必须先完成用户名校验、展示账号与安全配置计划，再等待单独明确确认；未确认或取消时不创建、不改 SSH 配置、不部署。新账号密码由密码学安全随机源生成，至少 24 字符，仅通过安全无记录 TTY 设置和交付；无法安全设置和交付时改由你通过安全 TTY 自行设置，否则停止。SSH 使用专用 Ed25519 密钥，sudo 需密码。复用已有账号时不覆盖密码、密钥、组或 sudo 策略；不满足条件可重新选择账号或暂停。高手模式可自定义 SSH 主机/端口/别名/密钥和账号策略；默认不启用 SSH 密码认证或禁用 root SSH。
+
+root-only 时，账号选择示例：
+
+```text
+检测到当前 SSH 登录用户：root
+未发现已配置且可独立验证的非 root SSH 管理员。
+请选择：
+1. 创建新的管理员账号（推荐）
+2. 指定并验证已有管理员账号
+3. 暂停部署
+```
+
+选择创建后，Agent 校验用户名（拒绝空值、Shell 特殊字符、选项注入、保留或冲突账号），先展示计划再等待你的单独确认。计划说明新建账号用户名、自动生成且至少 24 字符的密码如何通过安全 TTY 设置和交付、专用 Ed25519 密钥、本地 SSH 别名（`HostName`、`User`、`Port`、`IdentityFile`、`IdentitiesOnly yes`）、需密码 sudo，以及保持 root SSH 和 sshd 密码认证策略不变。密码本身不得显示在聊天或普通文件中。首次写入前必须确认可用安全 TTY；如果没有，就停止且不创建账号。取消/未确认也不产生变更；账号已存在则只审计和安全复用，不改其密码、密钥、组或 sudo 策略。
 
 Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；root 初始登录的新手流程只在检查和初始化期间使用 root，验证 `vps` 后切换到 `vps`。
 
@@ -168,7 +182,7 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 生成客户端配置前，询问我使用什么客户端（可多选：Shadowrocket、Clash Verge / Mihomo、sing-box、v2rayN 或其他客户端）。如果我不确定，先问设备系统，核实兼容性后给我建议并等待确认；只生成我选择的客户端格式。
 在任何密码输入前，从我实际使用的客户端网络直测指定的 SSH 端口（默认 22/TCP），不走 SSH 跳板或应用层代理；只有我另行要求时才单独测试 22/TCP。如果你无法从我的客户端网络测试，先给我本机测试命令并等待结果。测试失败时不要直接说 IP 被封，先停止部署并报告原因，不要自动切换代理或更换 IP。
 新手模式：分支依据必须是初始 SSH 登录用户名，记录后不得用 sudo/su 后的身份重新判断。初始用户为 root 时，先只读检查 SSH、账户和 sudo 环境并报告计划；不存在 vps 才创建普通管理用户，已存在则审计并原样复用其现有认证和 sudo；现有访问或权限缺失、有冲突时停止报告，不覆盖已有设置。仅为新建的 vps 安全生成至少 24 字符随机密码，供本地账户认证和 sudo 使用（SSH 使用专用密钥），通过不记录的安全 TTY 设置和交付；若做不到，要求我在安全 TTY 自行设置。仅为新建的 vps 配置专用 Ed25519 密钥，私钥保存在本机 `~/.ssh/ssh-proxy-node-deployer/` 并限制权限；只向服务器追加公钥，不覆盖 authorized_keys 或本地文件；新增不冲突的 `~/.ssh/config` 别名，包含主机、vps 用户、端口、密钥路径和 `IdentitiesOnly yes`，保留原条目。配置需密码的 sudo，禁止 NOPASSWD: ALL。保持 root 会话打开，通过独立 SSH 会话验证 vps 公钥登录和 sudo 后再部署。初始用户不是 root 时，原样复用 ubuntu、debian、overme、vps 等当前用户，不创建 vps、不改用户、密码、密钥、用户组或 SSH 设置，只检查 sudo；权限不足则报告并停止。
-高手模式：默认复用我提供的 SSH Host、用户、IdentityFile、可用的 SSH Agent、系统默认密钥和账户策略；Agent 不是必需条件。先单独做原始 TCP 直连测试，再运行 `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` 验证非交互认证。认证成功即通过认证预检；失败时区分超时、Host Key 异常、Permission denied 和其他错误并停止，不自动改配置或接受未知指纹。优先使用已有非 root 操作用户，不会默默创建账户。只有我明确要求时才创建或修改指定账户；可自定义 SSH 连接、账户创建策略、sudo/root 登录、密码认证和节点高级功能。
+高手模式：默认复用我提供的 SSH Host、用户、IdentityFile、可用的 SSH Agent、系统默认密钥和账户策略；Agent 不是必需条件。先单独做原始 TCP 直连测试，再运行 `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` 验证非交互认证。认证成功即通过认证预检；失败时区分超时、Host Key 异常、Permission denied 和其他错误并停止，不自动改配置或接受未知指纹。优先使用已有非 root 管理员。若初始 SSH 身份为 root 且没有可独立验证的非 root 管理员，主动询问创建账号（允许我指定用户名）、指定并验证已有账号、或暂停。创建前展示完整计划并等待单独确认；新账号密码至少 24 字符且仅通过安全无记录 TTY 设置和交付，SSH 使用专用 Ed25519 密钥，sudo 必须需要密码。已有账号只审计复用，不覆盖密码、密钥、用户组或 sudo 策略。取消不写入、不部署。可自定义 SSH 连接、账号策略和节点高级功能。
 只有高手模式询问高级设置；新手模式只用默认基础功能。默认不启用可选项、不运行融合怪、不安装面板。
 
 严格按顺序执行：连接验证 → 只读检查 → 展示计划 → 必要的账户初始化 → 独立 SSH / sudo 验证 → 节点部署 → 最终验收。不得运行未经审查的远程一键安装脚本，也不得将远程内容直接管道给 Shell；保留现有 SSH 和防火墙策略。任何 SSH 配置变更都要先做语法检查并准备已验证的恢复与回滚路径。禁用 Root SSH 登录必须经过明确确认和备用管理员独立验证；永不删除 root 系统账户，也不盲目修改防火墙。按默认方案使用高位端口。
@@ -181,15 +195,24 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 
 | 场景 | 预期行为 / 验收点 |
 | --- | --- |
-| 新手 + 初始用户 `root`，首次部署 | 只读检查后创建普通用户 `vps`；密码至少 24 字符并由安全 TTY 设置和交付；专用 Ed25519 公钥登录及需密码的 sudo 经独立会话验证后才部署。 |
-| 新手 + 初始用户 `root`，`vps` 已存在 | 审计账户、密钥和 sudo 状态；不覆盖现有密码、密钥、组或配置；冲突时停止。 |
-| 新手 + `ubuntu` / `debian` 等非 root 用户 | 复用初始用户；不创建 `vps`，不改凭据或 SSH；检查当前 sudo。 |
-| 新手 + 普通用户没有 sudo | 报告所需权限并停止，不提权、不新建账户。 |
-| 新手 + SSH 密钥登录失败 | 停止，不创建账户、不改 sshd 或防火墙；保留现有会话并报告认证失败。 |
-| 新手 + sudo 验证失败 | 停止部署，不撤销原访问；报告缺少或失败的 sudo 权限。 |
-| 高手 + 复用已有用户 | 保留现有用户、认证和账户策略。 |
-| 高手 + 明确要求自定义用户 | 先报告具体账户改动；执行相同的备份、独立验证与回滚要求。 |
-| 重复运行 Skill | 不重复创建用户/密钥/SSH 配置，不覆盖已有服务；检查现状后只做缺失且已计划的变更。 |
+| T01 高手 + root-only | 只读审计后询问创建、指定并验证已有管理员或暂停；不得直接默认停止或写入。 |
+| T02 输入新用户名 `vps` | 校验用户名，展示完整创建计划，等待单独明确确认；确认前没有写操作。 |
+| T03 用户取消 | 不创建账号、不改本地 SSH/密钥配置、不继续部署。 |
+| T04 自动生成密码 | 新账号密码由安全随机源生成且至少 24 字符；仅安全无记录 TTY 设置和交付，不进入聊天、日志或参数。 |
+| T05 安全终端不可用 | 引导用户通过安全 TTY 自行设置；没有安全 TTY 时停止初始化。 |
+| T06 `vps` 已存在 | 审计后仅在现有独立 SSH 密钥登录和需密码 sudo 均通过时复用；不覆盖凭据、密钥、组或 sudo 策略。 |
+| T07 用户名非法 | 拒绝空值、非法格式、选项注入和保留/冲突账号；不执行写操作。 |
+| T08 新用户 SSH 验证失败 | 停止部署，保持原 root SSH 会话和访问，不自动删除新账号。 |
+| T09 新用户 sudo 验证失败 | 停止部署，保留 root 访问并报告已发生的变更。 |
+| T10 新用户 SSH 与 sudo 都通过 | 独立登录、身份、`sudo -l` 和清缓存后的需密码 `sudo -v` 全部通过后，切换新账号部署。 |
+| T11 重复执行 Skill | 不重复创建账号、密钥、公钥行、别名、组成员或 sudo 规则；冲突时停止并报告。 |
+| T12 高手 + 已有非 root 管理员 | 保留配置并复用经独立 SSH 与 sudo 验证通过的账号。 |
+| T13 新手 + 初始用户 `root` | 仍按默认 `vps` 规则创建或审计复用。 |
+| T14 新手 + 初始用户非 root | 复用初始用户，不创建其他账号或改其凭据/SSH 配置。 |
+| T15 用户请求禁用 root SSH | 仍需单独明确授权、备用管理员独立验证、恢复路径和回滚。 |
+| T16 Agent 未运行但密钥认证成功 | Agent 仅作可选诊断；现有认证成功不得被 Agent 状态阻断。 |
+| T17 TCP 可达但 SSH 认证失败 | 不进入任何账号变更；报告认证错误并停止。 |
+| T18 本地 SSH 别名或密钥路径冲突 | 不覆盖现有文件或 Host 条目；报告冲突并允许重新选择或暂停。 |
 
 如果希望先检查而不部署，可以这样说：
 
@@ -251,7 +274,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
 - Ask which client app(s) the user uses; generate only the corresponding supported profile format(s). Keep client files in a private directory outside the repository.
-- Preserve existing SSH paths, host firewall policy, and unrelated services. In Beginner mode, create or safely reuse `vps` only when the original SSH login user is `root`; otherwise reuse the original account. Expert mode preserves accounts by default. Do not reboot the VPS; keep the sing-box API / Dashboard and third-party panels disabled by default.
+- Preserve existing SSH paths, host firewall policy, and unrelated services. In Beginner mode, create or safely reuse `vps` only when the original SSH login user is `root`; otherwise reuse the original account. Expert mode reuses a verified non-root administrator when available. If the initial login is `root` with no independently verifiable non-root SSH administrator, ask whether to create a custom-name administrator, specify and verify an existing account, or pause. Creating requires a validated username, a displayed plan, and separate explicit confirmation. Keep root SSH and the existing sshd password-authentication policy unchanged by default; never enable SSH password authentication as part of account setup. Do not reboot the VPS; keep the sing-box API / Dashboard and third-party panels disabled by default.
 - **Fusion Monster is off by default.** Run it only when explicitly requested in Expert mode; Beginner mode always skips it. A full benchmark can use CPU, disk, and network bandwidth.
 
 High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
@@ -285,6 +308,27 @@ Replace `YOUR_SSH_HOST` with the existing OpenSSH Config `Host` alias. OpenSSH u
 On failure, distinguish timeout, host-key verification errors, `Permission denied`, and other errors, then stop. Do not edit SSH configuration, accept an unknown fingerprint, disable host-key checking, or bypass authentication automatically. Agent status is optional diagnostic information and must never be made a prerequisite. Never print, copy, or upload private keys or passwords. Authentication through `ProxyJump` still does not prove direct TCP reachability to the target.
 
 See the [SSH preflight acceptance cases](tests/ssh-preflight-acceptance.md) for reproducible steps and the acceptance matrix.
+
+### Account initialization
+
+Beginner mode keeps its fixed policy: the user's explicit choice of Beginner mode for this deployment authorizes only the documented `root` → `vps` bootstrap. A root login or deployment request alone does not authorize account changes. When the initial SSH login is `root`, create or audit/reuse `vps`; otherwise reuse the exact initial non-root account without changing it. Expert mode preserves current SSH settings and reuses an already configured non-root administrator only after independent key-login and password-required sudo checks; a separately confirmed new account may add its own non-conflicting SSH alias.
+
+When Expert mode starts as `root` and the read-only audit finds no usable non-root SSH administrator, the agent asks:
+
+```text
+Detected SSH login user: root
+No configured and independently verifiable non-root SSH administrator was found.
+Choose:
+1. Create a new administrator (recommended)
+2. Specify and verify an existing administrator
+3. Pause deployment
+```
+
+For a new account, you choose the username. The agent validates it against Linux login-name rules, reserved/system users, UID policy, and existing accounts before using it as a separate command argument. It then shows a plan for the username, a cryptographically generated password of at least 24 characters, dedicated Ed25519 key, local SSH alias, password-required sudo, and preservation of root SSH access. It waits for your separate confirmation before the first write. Cancelling or declining means no account/config changes and no deployment.
+
+The password is for local account authentication and sudo; SSH uses the key, and the existing sshd password-authentication policy remains unchanged. Set and deliver the generated password only through a secure, non-recording TTY. Before the first write, confirm a safe TTY is available; otherwise stop without account/config changes. If the generated password cannot be delivered safely, let the user set it through a secure TTY. Never place the password in chat, command arguments, environment variables, scripts, shell history, logs, or ordinary files. For an account that already exists, inspect and reuse it only if a fresh independent key login and password-required sudo pass; do not overwrite its password, keys, groups, or sudo policy. If checks fail, reselect an account or pause.
+
+Keep the original root SSH session open. Verify a truly separate SSH connection as the selected username before elevation, inspect `sudo -l`, clear the sudo cache, and verify `sudo -v` through the secure interactive prompt. Only after both independent checks pass may deployment continue as the non-root administrator. A failed SSH or sudo check stops deployment and leaves the root access path intact.
 
 ### First-time setup
 
@@ -355,7 +399,7 @@ Use Beginner defaults only: do not ask about or enable advanced options. Save cl
 ```text
 Use the ssh-proxy-node-deployer Skill to deploy a VPS I own or am authorized to administer. Expert mode is selected; SSH_HOST=<Host alias from my existing SSH Config>, OPTIONAL_FEATURES=none. Reuse its configured user, IdentityFile, SSH Agent when available, and standard default keys; the Agent is optional. Do not ask again for completed values; ask only for required values that are missing or invalid, and do not guess.
 First test the SSH target's port directly from the network I will use, without an SSH jump host or application proxy; test TCP/22 separately only when I specifically ask. If you cannot test from that network, give me a local command and wait for the result. If the test fails, stop and report it; do not infer that the IP is banned or switch proxies.
-Perform read-only checks and show the deployment plan first, then follow the Skill's safety process. Never collect passwords in chat; after reachability is checked, enter a password only through a non-recording secure interactive terminal. Preserve account and SSH settings by default; do not enable unlisted optional features.
+Perform the read-only audit first. If the initial SSH identity is root and no independently verified non-root administrator exists, ask whether I want to create a new administrator (let me choose the username), specify an existing administrator for verification, or pause. Show the full account plan and wait for my separate confirmation before any write. Generate a password of at least 24 characters and set/deliver it only through a secure, non-recording TTY; if that channel is unavailable, guide me to set it through a secure TTY or stop. Use a dedicated Ed25519 key and password-required sudo. Preserve an existing account's credentials and policy. Keep root access open and verify the account through an independent SSH login and password-required sudo before deployment. Do not enable SSH password authentication or disable root SSH by default. Do not enable unlisted optional features.
 ```
 
 <details>
@@ -370,31 +414,40 @@ The agent first asks:
 ```text
 Which connection mode do you want?
 1. Beginner mode: create/reuse `vps` only for an initial root login; otherwise reuse the initial user, then deploy defaults.
-2. Expert mode: SSH is already configured; reuse it directly.
+2. Expert mode: reuse existing SSH; if only root access is available, choose whether to create or specify/verify a non-root administrator, or pause, then customize advanced options.
 ```
 
 Then it follows the selected mode and asks which client app(s) you use before generating files. You can choose more than one: Shadowrocket, Clash Verge / Mihomo, sing-box, v2rayN, or another named client. If you are unsure, tell the agent your device operating system so it can check compatibility, recommend an option, and wait for your confirmation.
 
 - **Beginner mode:** provide the server address, initial SSH username, and port. The initial login identity controls the account branch, even after `sudo` or `su`. If it is `root`, the agent audits the host and creates `vps` only when absent; an existing `vps` is reused with its current working authentication and sudo, without overwriting settings, and missing access or conflicts stop the run. Only a new `vps` gets a cryptographically random password of at least 24 characters through a non-recording secure terminal, a dedicated Ed25519 SSH key, and password-required sudo. A fresh independent SSH session must verify key login and sudo before deployment. If the initial user is not root, reuse that exact account without creating `vps` or changing its name, password, keys, groups, or SSH policy; check sudo and stop if it is insufficient. Beginner mode uses defaults and asks no advanced questions.
-- **Expert mode:** provide an existing SSH Host alias or configured target. Reuse the current SSH user, IdentityFile, SSH Agent when available, standard default keys, and account policy by default; a stopped Agent is not a blocker when another configured method succeeds; prefer an existing non-root operating account. If only root exists, report the need for non-root access and stop unless I explicitly request root operation. Create or modify a named account only when explicitly requested. Expert mode supports custom SSH host/port/alias/key, account strategy, sudo/root/password-authentication policy, protocols, ports, IP families, firewall, certificates, WARP, BBR, Fusion Monster, and panels.
+- **Expert mode:** provide an existing SSH Host alias or configured target. Reuse the current SSH user, IdentityFile, SSH Agent when available, standard default keys, and account policy by default; a stopped Agent is not a blocker when another configured method succeeds. Prefer a non-root administrator whose independent key login and password-required sudo pass. If the initial SSH login is `root` and no such administrator exists, ask whether to create an administrator (recommended), specify and verify an existing account, or pause. The user may choose a username. Validate it, display the exact account/key/sudo/SSH-alias plan, and require separate confirmation before the first write. A new account gets a cryptographically generated password of at least 24 characters, set and delivered only through a secure non-recording TTY, a dedicated Ed25519 key, and password-required sudo. If secure password handling is unavailable, have the user set it through a secure TTY or stop. Keep the original root session open; do not change existing-account credentials or policy. Expert mode supports custom SSH host/port/alias/key and account strategy plus node/network features.
 
-The agent runs remote work as a non-root user and uses `sudo` only for needed system commands. In Beginner mode starting from root, the root connection is used for the audit and account bootstrap; switch to `vps` after its independent login check passes.
+The agent runs remote work as a non-root user and uses `sudo` only for needed system commands. A root connection is used only for read-only checks and an explicitly confirmed account bootstrap; after independent SSH and sudo checks pass, switch to the selected administrator.
 
-Never paste passwords into chat. If a terminal cannot securely set and deliver the generated password, set it yourself through a secure TTY; without a secure interactive terminal, stop account initialization.
+Never paste passwords into chat. If a terminal cannot securely set and deliver the generated password, set it yourself through a secure TTY; without a secure interactive terminal, stop account initialization. SSH must be verified from a genuinely separate connection as the selected username before any sudo. Then check `sudo -l`, clear its cache, and verify password-required `sudo -v` before deploying.
 
 ### Mode behavior and acceptance scenarios
 
-| Scenario | Expected behavior / acceptance check |
-| --- | --- |
-| Beginner + initial `root`, first run | Read-only audit, create normal `vps`, securely set/deliver a 24+ character password, configure a dedicated Ed25519 key and password-required sudo, and verify both from a separate SSH session before deployment. |
-| Beginner + initial `root`, `vps` exists | Audit and reuse its current working authentication and sudo without changing password, keys, groups, or settings; stop if required access is missing or conflicts exist. |
-| Beginner + `ubuntu` / `debian` or other non-root | Reuse the initial user; never create `vps` or change credentials/SSH; check current sudo. |
-| Beginner + no sudo | Report required permission and stop without escalation or new account creation. |
-| Beginner + SSH key login fails | Stop without account, sshd, or firewall changes; retain the current session and report authentication failure. |
-| Beginner + sudo verification fails | Stop node deployment and preserve existing access; report the failed permission check. |
-| Expert + reuse existing user | Preserve existing user, authentication, and account policy. |
-| Expert + explicitly requested custom user | Describe the exact change first; keep backup, independent verification, and rollback safeguards. |
-| Repeated Skill run | Do not duplicate accounts, keys, SSH entries, or services; inspect current state and apply only planned missing changes. |
+| ID | Scenario | Expected behavior / acceptance check |
+| --- | --- | --- |
+| T01 | Expert + root-only | Ask whether to create, specify/verify an existing administrator, or pause; do not stop by default. |
+| T02 | Custom username `vps` | Validate it, show the complete plan, and wait for explicit confirmation before any write. |
+| T03 | User cancels | No account or local SSH changes and no deployment. |
+| T04 | Generated password | At least 24 characters from a cryptographic source; set/deliver only through a secure non-recording TTY. |
+| T05 | No secure terminal | Guide the user to set a password through a secure TTY or stop; never disclose it through chat/files. |
+| T06 | `vps` already exists | Audit and reuse only if independent SSH key login and password-required sudo pass; do not overwrite credentials or policy. |
+| T07 | Invalid username | Reject empty, invalid, injected, reserved, or conflicting names without writes. |
+| T08 | New SSH verification fails | Stop deployment and preserve root SSH access; do not automatically delete the new account. |
+| T09 | New sudo verification fails | Stop deployment, preserve root access, and report changes already made. |
+| T10 | SSH and sudo both pass | Continue deployment as the verified non-root administrator. |
+| T11 | Repeated run | Do not duplicate accounts, keys, public-key lines, aliases, group memberships, or sudo rules. |
+| T12 | Existing non-root admin | Reuse only after independent SSH and sudo verification; preserve its settings. |
+| T13 | Beginner + initial root | Retain the fixed `vps` create/reuse policy. |
+| T14 | Beginner + initial non-root | Reuse that user; do not create another account or alter its credentials/SSH. |
+| T15 | User asks to disable root SSH | Require separate authorization, verified alternate admin, recovery path, and rollback. |
+| T16 | Agent stopped, key login succeeds | Agent state does not block a successful configured SSH authentication method. |
+| T17 | TCP reachable, SSH authentication fails | Do not begin account changes; report the authentication failure and stop. |
+| T18 | Local alias/key path conflict | Do not overwrite existing files or Host entries; report the conflict. |
 
 ```text
 Use the ssh-proxy-node-deployer Skill to deploy a personal node on a VPS I own
@@ -427,16 +480,20 @@ reuse that exact user; do not create `vps` or modify its username, password,
 keys, groups, or SSH policy. Check sudo and stop if insufficient. Never use
 `NOPASSWD: ALL`. Beginner mode uses default node features only.
 Expert mode: reuse the configured SSH Host, user, IdentityFile, SSH Agent when available, standard default keys, and existing
-account policy by default. Prefer an existing non-root operating account; if
-only root is available, report the need and stop unless I explicitly request
-root operation. Create or modify a named account only when I explicitly request it.
+account policy by default. Prefer an existing non-root administrator after independent SSH-key and password-required sudo checks. If
+the initial user is root and no verified non-root administrator exists, ask whether I want to create a new administrator, specify and verify
+an existing account, or pause. Let me choose the username; validate it against Linux account rules and local reserved/existing accounts.
+For a new account, show the full plan and wait for my separate explicit confirmation before any write. Generate a password of at least 24
+characters; set/deliver it only through a secure, non-recording TTY (otherwise guide me to set it through a secure TTY or stop). Configure
+a dedicated Ed25519 key, password-required sudo, and a conflict-free SSH alias. Keep the original root session and SSH access available.
+For existing accounts, do not overwrite credentials, keys, groups, or sudo policy.
 Ask about advanced settings only in Expert mode. Beginner mode uses defaults
 only. Keep add-ons, Fusion Monster, and panels off by default; enable them only
 if I choose Expert mode and explicitly request them.
 
 Follow this order: verify the connection → perform read-only checks → show the
-plan → initialize an account only when required → verify SSH login and sudo in
-an independent session → deploy the node → perform final acceptance. Preserve
+plan → initialize an account only after explicit confirmation → verify its SSH login and password-required sudo in
+an independent session → deploy as the verified non-root account → perform final acceptance. Preserve
 existing SSH and firewall paths. Do not execute an unreviewed remote one-click
 installer or pipe remote content directly to a shell. Check `sshd` syntax and prepare a verified
 recovery path and rollback before any requested SSH change. Disabling root SSH
