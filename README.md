@@ -20,7 +20,7 @@
 ### 默认行为
 
 - 使用 sing-box，部署 VLESS + REALITY + Vision（TCP）和 Hysteria2（UDP）。
-- 默认使用高位端口：REALITY `46690/TCP`，Hysteria2 `46691/UDP`。如端口冲突，只为冲突的协议选择其他可用高位端口。`443` 是兼容选项，不是默认端口。
+- 全新安装默认使用 REALITY `443/TCP` 和 Hysteria2 `443/UDP`；高手模式可明确选择 `ports-high`，使用 `46690/TCP` 和 `46691/UDP`。TCP、UDP 分别检查；任何所选端口冲突时停止整个双协议部署，不自动更换端口。
 - 部署前从实际使用的客户端网络直测 SSH `22/TCP`（或你指定的 SSH 端口），不走 SSH 跳板或应用层代理。失败只说明当前测试位置无法直连，不能单凭一次失败断定 IP 被封；会先停止部署并报告可能原因，不会自动换 IP 或切换代理。
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
 - 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
@@ -28,7 +28,13 @@
 - 默认保留现有 SSH 访问路径、主机防火墙策略和其他服务；新手模式仅在初始 SSH 用户为 `root` 时创建或安全复用 `vps`，非 root 用户直接复用；高手模式优先复用已验证的非 root 管理员。高手模式若初始登录为 `root` 且没有可独立验证的非 root 管理员，会询问创建自定义用户名、指定已有账号验证或暂停；新账号必须先展示计划并获得单独明确确认。不会默认禁用 root SSH、启用 SSH 密码认证或重启机器。sing-box API / Dashboard 和第三方面板默认关闭。
 - **默认不下载、不运行融合怪。** 只有高手模式明确要求测速或机器评测时才运行；新手模式始终跳过。完整测试可能增加 CPU、磁盘负载和流量。
 
-高位端口只能减少部分只扫描常见端口的噪声，不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
+443 是常见 HTTPS/HTTP3 端口，在某些网络中可能更兼容，但不保证连接成功，也不保证无法识别或封锁。高位端口不能隐藏服务器 IP，也挡不住全端口扫描。请结合云厂商安全组、防火墙和账户安全设置使用。
+
+部署前只读检查 TCP、UDP 的监听服务、绑定地址、IPv4/IPv6 和通配监听，以及可识别的容器端口映射与转发规则。TCP/443 上的 HTTPS 网站或 UDP/443 上的 HTTP/3 服务可能分别冲突；任一所选端口冲突或无法确认可用时，停止整个双协议部署，报告原因和选择，不停止或覆盖已有服务。新手可选择暂停，或明确切换高手模式再选择 `ports-high`；不确认或取消时不写入。云安全组无法仅凭 SSH 确认，需分别核实并从外部验收。
+
+新默认值仅适用于确认是全新安装的节点。重复运行、维护已有节点、发现已有 sing-box inbound 或无法确认安装归属时，不套用新默认端口，不自动修改节点端口、客户端配置、防火墙、证书或凭据。`ports-443` 不构成迁移授权；端口迁移必须单独明确请求并确认计划。
+
+现有 ACME 条件和回退策略不变：HTTP-01 检查 TCP/80，TLS-ALPN-01 检查 TCP/443；REALITY 占用 TCP/443 时不能假设后者可用，Hysteria2 使用 UDP/443 也不代表 TCP/443 可用。不为签证书停止已有服务，不用关闭证书验证掩盖问题；无法确定安全处理时暂停。
 
 如果 Agent 不在你实际使用的网络中，可在本机先测 SSH 端口（替换服务器 IP；自定义 SSH 端口时替换 `22`）：
 
@@ -185,7 +191,7 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 高手模式：默认复用我提供的 SSH Host、用户、IdentityFile、可用的 SSH Agent、系统默认密钥和账户策略；Agent 不是必需条件。先单独做原始 TCP 直连测试，再运行 `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` 验证非交互认证。认证成功即通过认证预检；失败时区分超时、Host Key 异常、Permission denied 和其他错误并停止，不自动改配置或接受未知指纹。优先使用已有非 root 管理员。若初始 SSH 身份为 root 且没有可独立验证的非 root 管理员，主动询问创建账号（允许我指定用户名）、指定并验证已有账号、或暂停。创建前展示完整计划并等待单独确认；新账号密码至少 24 字符且仅通过安全无记录 TTY 设置和交付，SSH 使用专用 Ed25519 密钥，sudo 必须需要密码。已有账号只审计复用，不覆盖密码、密钥、用户组或 sudo 策略。取消不写入、不部署。可自定义 SSH 连接、账号策略和节点高级功能。
 只有高手模式询问高级设置；新手模式只用默认基础功能。默认不启用可选项、不运行融合怪、不安装面板。
 
-严格按顺序执行：连接验证 → 只读检查 → 展示计划 → 必要的账户初始化 → 独立 SSH / sudo 验证 → 节点部署 → 最终验收。不得运行未经审查的远程一键安装脚本，也不得将远程内容直接管道给 Shell；保留现有 SSH 和防火墙策略。任何 SSH 配置变更都要先做语法检查并准备已验证的恢复与回滚路径。禁用 Root SSH 登录必须经过明确确认和备用管理员独立验证；永不删除 root 系统账户，也不盲目修改防火墙。按默认方案使用高位端口。
+严格按顺序执行：连接验证 → 只读检查 → 展示计划 → 必要的账户初始化 → 独立 SSH / sudo 验证 → 节点部署 → 最终验收。不得运行未经审查的远程一键安装脚本，也不得将远程内容直接管道给 Shell；保留现有 SSH 和防火墙策略。任何 SSH 配置变更都要先做语法检查并准备已验证的恢复与回滚路径。禁用 Root SSH 登录必须经过明确确认和备用管理员独立验证；永不删除 root 系统账户，也不盲目修改防火墙。全新安装使用双 443；任一端口冲突则停止，不自动更换，已有节点不自动迁移。
 客户端配置请放在仓库外的私有目录，不要把密码或私钥写入聊天、仓库或日志。
 ```
 
@@ -235,7 +241,8 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 
 | 功能码 | 启用内容 | 注意事项 |
 | --- | --- | --- |
-| `ports-443` | REALITY 使用 TCP/443，Hysteria2 使用 UDP/443 | 两个端口和云安全组规则分别检查；这是兼容选项，不会隐藏 IP。 |
+| `ports-high` | 全新安装选择 REALITY TCP/46690、Hysteria2 UDP/46691 | 必须明确选择；任一端口冲突时停止，不自动换端口。 |
+| `ports-443` | 全新安装双 443 默认方案的兼容别名 | 不授权迁移已有节点；与 `ports-high` 同时选择时停止并要求明确选择。 |
 | `fusion-basic` | 融合怪基础检查 | 轻量、限时并关闭上传和重负载测试；运行前会告知基础 IP 查询可能把 VPS 公网 IP 发送给第三方。 |
 | `fusion-full` | 融合怪完整评测 | 会产生 CPU / 磁盘负载和额外流量。 |
 | `firewall-ufw` / `firewall-firewalld` | 配置对应的主机防火墙 | 先检查现有规则并确保 SSH 不会被锁在外面；不会盲目替换现有防火墙。 |
@@ -281,7 +288,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 ### Defaults
 
 - sing-box with VLESS + REALITY + Vision over TCP and Hysteria2 over UDP.
-- High ports by default: REALITY on `46690/TCP`, Hysteria2 on `46691/UDP`. If a port is occupied, choose another available high port for that protocol only. Port `443` is an opt-in compatibility profile.
+- New installations default to REALITY on `443/TCP` and Hysteria2 on `443/UDP`. Expert mode can explicitly select `ports-high` for `46690/TCP` and `46691/UDP`. Check TCP and UDP separately; a conflict on either selected port stops the entire dual-protocol deployment without automatic replacement.
 - Before deployment, test SSH TCP/22 (or the configured SSH port) directly from the actual client network, without an SSH jump host or application proxy. Separately, in Expert mode, first try `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` using the existing SSH Host configuration. OpenSSH may use IdentityFile, the Agent when available, default keys, and configured ProxyJump for authentication; a stopped Agent is not a blocker when authentication succeeds. TCP success does not prove authentication, and authentication through ProxyJump does not prove direct TCP reachability. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
 - If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
@@ -289,7 +296,13 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - Preserve existing SSH paths, host firewall policy, and unrelated services. In Beginner mode, create or safely reuse `vps` only when the original SSH login user is `root`; otherwise reuse the original account. Expert mode reuses a verified non-root administrator when available. If the initial login is `root` with no independently verifiable non-root SSH administrator, ask whether to create a custom-name administrator, specify and verify an existing account, or pause. Creating requires a validated username, a displayed plan, and separate explicit confirmation. Keep root SSH and the existing sshd password-authentication policy unchanged by default; never enable SSH password authentication as part of account setup. Do not reboot the VPS; keep the sing-box API / Dashboard and third-party panels disabled by default.
 - **Fusion Monster is off by default.** Run it only when explicitly requested in Expert mode; Beginner mode always skips it. A full benchmark can use CPU, disk, and network bandwidth.
 
-High ports can reduce noise from scans limited to common ports. They do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
+Port 443 is common for HTTPS/HTTP3 and may improve compatibility on some networks, but does not guarantee connectivity or prevent identification or blocking. High ports do not hide the VPS IP or prevent full-range scans. Use cloud firewall rules and sound account security as well.
+
+Before any writes, inspect TCP and UDP listeners, services, binding addresses, IPv4/IPv6 and wildcard overlap, plus identifiable container port mappings and forwarding rules. An HTTPS website on TCP/443 or HTTP/3 service on UDP/443 can conflict independently. If either selected port conflicts or cannot be established as available, stop the entire dual-protocol deployment and report the evidence and choices; do not stop or overwrite existing services. A Beginner may pause or explicitly switch to Expert mode and select `ports-high`; cancellation or lack of explicit plan confirmation means no writes. SSH alone cannot verify cloud security groups: check each required rule and validate externally.
+
+The new defaults apply only to a confirmed new installation. On a repeat run, maintenance, an existing sing-box inbound, or an installation of unclear ownership, do not apply the new defaults or automatically change node ports, client files, firewall rules, certificates, or credentials. `ports-443` does not authorize migration; port migration requires a separate explicit request and confirmed plan.
+
+Existing ACME triggers and fallback remain unchanged: check TCP/80 for HTTP-01 and TCP/443 for TLS-ALPN-01. REALITY using TCP/443 does not mean the latter challenge can use it, and Hysteria2 on UDP/443 does not make TCP/443 available. Do not stop existing services for certificate issuance or disable certificate verification to hide a problem; pause if a safe outcome is unclear.
 
 If your agent is not running on the network you will use, test the SSH port locally (replace the server IP and use your custom SSH port instead of `22` when applicable):
 
@@ -511,7 +524,7 @@ installer or pipe remote content directly to a shell. Check `sshd` syntax and pr
 recovery path and rollback before any requested SSH change. Disabling root SSH
 login requires explicit confirmation and an independently verified alternate
 administrator. Never delete the root system account or blindly modify a firewall.
-Use the default high-port profile and make reversible changes.
+For a confirmed new installation use the default TCP/443 and UDP/443 profile; stop on either conflict without automatic replacement, and do not automatically migrate an existing node. Make reversible changes.
 Save client profiles in a private directory outside the repository. Never put
 passwords or private keys in chat, the repository, or logs.
 ```
@@ -540,7 +553,8 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 
 | Feature ID | Enables | Notes |
 | --- | --- | --- |
-| `ports-443` | REALITY on TCP/443 and Hysteria2 on UDP/443 | Check both listeners and provider rules independently. This compatibility option does not hide the IP. |
+| `ports-high` | Select REALITY TCP/46690 and Hysteria2 UDP/46691 for a new installation | Explicit selection required; stop on either conflict without automatic replacement. |
+| `ports-443` | Compatibility alias for the new-installation dual-443 default | Does not authorize migration of existing nodes; selecting it with `ports-high` stops and requires an explicit choice. |
 | `fusion-basic` | Basic Fusion Monster check | Time-limited, with uploads and heavy suites disabled. Basic IP lookups may send the VPS public IP to third parties; the agent will tell you before running it. |
 | `fusion-full` | Full Fusion Monster benchmark | Adds CPU/disk load and network traffic. |
 | `firewall-ufw` / `firewall-firewalld` | Configure the named host firewall | Check existing rules and preserve SSH access; do not blindly replace an existing firewall. |
