@@ -265,6 +265,8 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 
 `reality-nearby-target` 按 `same-asn`、`same-prefix24`（仅 IPv4）或 `auto` 从公开被动数据寻找候选，最多展示 5 个并进行低频 TLS 检查，不扫描整个网段。`reality-custom-target` 使用用户指定的握手目标。两者互斥；域名入口可与其中之一及 `ports-high` 组合。检查 DNS、TLS 1.3、HTTP/2、证书、SNI、重定向、CDN 和回环风险；同 ASN 或网段不能证明可靠性。没有合适候选时保持原配置；用户明确选择后，展示计划并单独确认。现有节点不会自动迁移，也不会自动修改 DNS 或防火墙。
 
+高手模式可选择按顺序寻找握手目标：先用公开被动资料找同 ASN 候选；无合适结果时，经用户同意检查大厂现有 HTTPS 域名；仍不合适时，询问用户是否提供自己的域名。自有域名必须指向可验证的独立兼容 HTTPS 服务，并排除回连 REALITY 监听的风险；仅作为客户端入口的域名不会自动成为握手目标。每一步均需检查并展示证据，切换到自定义目标需用户明确选择；所有方案失败或取消时保留现有配置，全新安装尚无目标则暂停询问。最终变更必须另行确认；不自动故障切换。显式选择的 `same-prefix24` 策略仍可使用；`auto` 保持先同 ASN、再可用同 `/24` 证据的顺序，再询问其他候选。新手和 `none` 的默认行为不变。
+
 示例（逻辑问答参数，并非环境变量解析器）：
 
 ```ini
@@ -594,6 +596,8 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 Only explicit Expert mode selection of `domain-endpoint` uses a user-controlled domain for authorized client connection addresses. Beginner mode does not ask about or enable these advanced features, and `OPTIONAL_FEATURES=none` enables none of them. Deployment works without an owned domain; providing a domain alone does not enable a REALITY domain endpoint. `domain-endpoint` does not automatically enable `reality-nearby-target` or `reality-custom-target`. The connection domain, REALITY SNI/handshake target, and Hysteria2 certificate domain have distinct purposes; the existing beginner ACME trigger and fallback remain unchanged.
 
 `reality-nearby-target` uses passive public evidence with `same-asn`, `same-prefix24` (IPv4 only), or `auto`, displays at most five candidates, and performs low-frequency TLS checks without scanning an entire subnet. `reality-custom-target` uses a user-specified handshake target. The two target features are mutually exclusive; the domain endpoint can be combined with either and with `ports-high`. Check DNS, TLS 1.3, HTTP/2, certificates, SNI, redirects, CDN and loop risks; shared ASN or prefix does not establish reliability. If no candidate qualifies, preserve the configuration. After explicit selection, show the plan and obtain separate confirmation. Existing nodes are not automatically migrated; DNS and firewall rules are not automatically changed.
+
+Expert mode can follow an ordered target search: first use public passive evidence to find same-ASN candidates; if none qualifies, ask before checking existing HTTPS domains operated by major providers; if these are unsuitable, ask whether the user wants to supply an owned domain. The owned domain must serve an independently verified compatible HTTPS service without looping back into the REALITY listener; a client endpoint does not automatically become a handshake target. Check and report evidence at each stage, and require an explicit choice to transition to a custom target. If all alternatives fail or the user cancels, preserve the existing configuration; if a new installation has no target, pause and ask. Final changes require separate confirmation; this is not automatic failover. Explicit `same-prefix24` remains available; `auto` retains same-ASN followed by available same-/24 evidence before offering other candidates. Beginner and `none` defaults remain unchanged.
 
 Example (logical Q&A parameters, not an environment-variable parser):
 
