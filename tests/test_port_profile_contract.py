@@ -51,13 +51,11 @@ class PortProfileContractTests(unittest.TestCase):
             self.assertIn(phrase.lower(), SKILL.lower())
 
     def test_bilingual_readme_and_domain_feature_isolation(self):
-        for phrase in ("全新安装默认使用 REALITY `443/TCP`", "New installations default to REALITY on `443/TCP`",
-                       "端口迁移必须单独明确请求", "port migration requires a separate explicit request",
-                       "`ports-high`", "`ports-443`"):
+        for phrase in ("`443/TCP`", "`443/UDP`", "已有节点不自动迁移", "Existing nodes are not automatically migrated", "`ports-high`", "`ports-443`"):
             self.assertIn(phrase, README)
         for phrase in ("expert-mode explicit selection of a user-controlled client connection domain", "never ask these advanced questions in beginner mode", "`OPTIONAL_FEATURES=none` does not enable the new domain features", "No owned domain is required for deployment", "Merely providing a domain does not enable `domain-endpoint`", "Selecting `domain-endpoint` does not enable `reality-nearby-target` or `reality-custom-target`", "existing beginner and expert Hysteria2 ACME trigger and fallback remain unchanged"):
             self.assertIn(phrase, SKILL)
-        for phrase in ("仅高手模式明确选择 `domain-endpoint`", "新手模式不询问或启用", "Only explicit Expert mode selection of `domain-endpoint`", "Beginner mode does not ask about or enable", "providing a domain alone does not enable"):
+        for phrase in ("仅高手模式明确选择", "Expert mode requires explicit selection", "`domain-endpoint` 不会自动启用任一目标功能", "A domain or target parameter alone does not select a feature"):
             self.assertIn(phrase, README)
 
     def test_acceptance_matrix_covers_all_scenarios(self):

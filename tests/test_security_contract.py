@@ -73,5 +73,5 @@ class OfflineReferenceTests(unittest.TestCase):
         self.assertNotIn("use a user-supplied target when given", SKILL)
         for phrase in ("A target parameter alone never selects", "Both target feature IDs together", "explicitly permits leaving", "Cancellation or no confirmation causes no target changes", "client identity verification is mandatory", "certificate hostname normally", "separate trusted channel", "Never generate `insecure: true`", "enable `skip-cert-verify`", "A TLS connection alone does not prove server identity", "stop delivery of its HY2 profile", "`443/tcp` for REALITY", "`443/udp` for Hysteria2"):
             self.assertIn(phrase, SKILL)
-        self.assertIn("不得默认关闭证书验证", README)
-        self.assertIn("Never disable verification", README)
+        self.assertIn("不默认关闭 TLS 证书验证", README)
+        self.assertIn("does not disable TLS certificate verification by default", README)

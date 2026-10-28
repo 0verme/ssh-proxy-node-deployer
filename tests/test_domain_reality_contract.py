@@ -38,8 +38,8 @@ class DomainRealityContractTests(unittest.TestCase):
         for evidence in ("192.0.2.10", "mock ASN unavailable", "certificate mismatch", "user cancels", "at most five"):
             self.assertIn(evidence, MATRIX)
 
-    def test_readme_is_bilingual_and_example_is_not_runtime_parser(self):
-        for phrase in ("高手模式：域名入口与 REALITY 目标", "Expert mode: domain endpoint and REALITY target", "并非环境变量解析器", "not an environment-variable parser", "Hysteria2", "`same-prefix24`"):
+    def test_readme_shows_feature_isolation(self):
+        for phrase in ("高级功能 / Advanced features", "`domain-endpoint`", "`reality-nearby-target`", "`reality-custom-target`", "互斥", "mutually exclusive"):
             self.assertIn(phrase, README)
 
 if __name__ == "__main__":
