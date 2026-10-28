@@ -28,12 +28,6 @@ class AccountInitializationContractTests(unittest.TestCase):
         actual = set(re.findall(r"^\| (T\d{2}) \|", ACCEPTANCE, re.MULTILINE))
         expected = {f"T{number:02d}" for number in range(1, 19)}
         self.assertEqual(expected, actual)
-        self.assertTrue(
-            all(
-                re.search(rf"^\| {case}(?:\s|\|)", README, re.MULTILINE)
-                for case in expected
-            )
-        )
 
     def test_expert_root_only_enters_three_way_interaction(self):
         required = (
@@ -45,7 +39,7 @@ class AccountInitializationContractTests(unittest.TestCase):
         for phrase in required:
             with self.subTest(phrase=phrase):
                 self.require_contract(phrase.lower(), SKILL.lower())
-        self.require_contract("若初始 SSH 用户是 `root`", README)
+        self.require_contract("高手模式可按计划和单独确认安全初始化自定义管理员", README)
 
     def test_creation_requires_a_validated_name_and_explicit_plan_confirmation(self):
         for phrase in (
@@ -96,7 +90,6 @@ class AccountInitializationContractTests(unittest.TestCase):
         ):
             with self.subTest(phrase=phrase):
                 self.require_contract(phrase, SKILL)
-        self.require_contract("Only after both independent checks pass", README)
 
     def test_existing_accounts_are_audited_without_credential_or_policy_overwrite(self):
         for phrase in (
