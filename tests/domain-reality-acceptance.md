@@ -25,3 +25,5 @@ These are mock scenarios for reviewing an instruction contract, not executed net
 | D19 | Major-provider candidates fail; user offers owned domain resolving to REALITY listener | Reject loop, preserve configuration and ask for another target or pause. |
 | D20 | All tiers fail or user cancels; new install has no target | Keep existing target or pause new installation; no automatic fallback. |
 | D21 | User explicitly selects same-prefix24 or none | Preserve selected scope or default behavior; do not launch the ordered workflow implicitly. |
+
+F01–F20 have an executable offline reference decision model in `test_security_contract.py`. It is not an execution of the agent; D scenarios above remain manual review cases. No real client, VPS, certificate or network is exercised.

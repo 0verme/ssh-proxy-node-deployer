@@ -23,7 +23,7 @@
 - 全新安装默认使用 REALITY `443/TCP` 和 Hysteria2 `443/UDP`；高手模式可明确选择 `ports-high`，使用 `46690/TCP` 和 `46691/UDP`。TCP、UDP 分别检查；任何所选端口冲突时停止整个双协议部署，不自动更换端口。
 - 部署前从实际使用的客户端网络直测 SSH `22/TCP`（或你指定的 SSH 端口），不走 SSH 跳板或应用层代理。失败只说明当前测试位置无法直连，不能单凭一次失败断定 IP 被封；会先停止部署并报告可能原因，不会自动换 IP 或切换代理。
 - 按实际可达性判断 IPv4 / IPv6；有地址不代表从公网一定能连通。
-- 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则用新生成的自签证书，并说明客户端验证身份的取舍。
+- 有域名且你能控制 DNS 时，默认尝试申请受信任的 ACME 证书；否则可用新生成的自签证书，但客户端必须安全验证服务器身份。
 - 问答时询问你使用的客户端（可多选），只生成相应且受支持的配置格式；客户端文件保存在仓库之外的私有目录。
 - 默认保留现有 SSH 访问路径、主机防火墙策略和其他服务；新手模式仅在初始 SSH 用户为 `root` 时创建或安全复用 `vps`，非 root 用户直接复用；高手模式优先复用已验证的非 root 管理员。高手模式若初始登录为 `root` 且没有可独立验证的非 root 管理员，会询问创建自定义用户名、指定已有账号验证或暂停；新账号必须先展示计划并获得单独明确确认。不会默认禁用 root SSH、启用 SSH 密码认证或重启机器。sing-box API / Dashboard 和第三方面板默认关闭。
 - **默认不下载、不运行融合怪。** 只有高手模式明确要求测速或机器评测时才运行；新手模式始终跳过。完整测试可能增加 CPU、磁盘负载和流量。
@@ -261,6 +261,8 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 
 #### 高手模式：域名入口与 REALITY 目标
 
+新手模式和高手模式 `none` 使用默认目标：先检查 `gateway.icloud.com`，必要时仅在用户授权范围内评估其他兼容目标。新手主动要求自定义时，先询问是否切换高手模式；未确认不应用。高手必须显式选择 `reality-custom-target` 或 `reality-nearby-target`，单独提供参数不代表授权，两者同时选择须停止并重新选择。验证失败或取消时保留已有目标；新安装只有在用户允许离开所选范围时才能评估默认目标，否则暂停。
+
 仅高手模式明确选择 `domain-endpoint` 才将自有域名用作授权的客户端连接地址；新手模式不询问或启用这些高级功能，`OPTIONAL_FEATURES=none` 也不启用。不提供域名仍可部署；仅提供域名不等于启用 REALITY 自有域名入口。域名入口不会自动启用 `reality-nearby-target` 或 `reality-custom-target`。节点连接域名、REALITY SNI/握手目标与 Hysteria2 证书域名是不同用途；新手模式原有 ACME 触发和回退规则不变。
 
 `reality-nearby-target` 按 `same-asn`、`same-prefix24`（仅 IPv4）或 `auto` 从公开被动数据寻找候选，最多展示 5 个并进行低频 TLS 检查，不扫描整个网段。`reality-custom-target` 使用用户指定的握手目标。两者互斥；域名入口可与其中之一及 `ports-high` 组合。检查 DNS、TLS 1.3、HTTP/2、证书、SNI、重定向、CDN 和回环风险；同 ASN 或网段不能证明可靠性。没有合适候选时保持原配置；用户明确选择后，展示计划并单独确认。现有节点不会自动迁移，也不会自动修改 DNS 或防火墙。
@@ -311,7 +313,7 @@ This is a cautious operating guide, not a blind installer. The agent adapts to t
 - New installations default to REALITY on `443/TCP` and Hysteria2 on `443/UDP`. Expert mode can explicitly select `ports-high` for `46690/TCP` and `46691/UDP`. Check TCP and UDP separately; a conflict on either selected port stops the entire dual-protocol deployment without automatic replacement.
 - Before deployment, test SSH TCP/22 (or the configured SSH port) directly from the actual client network, without an SSH jump host or application proxy. Separately, in Expert mode, first try `ssh -o BatchMode=yes -o ConnectTimeout=10 <Host> "whoami && hostname"` using the existing SSH Host configuration. OpenSSH may use IdentityFile, the Agent when available, default keys, and configured ProxyJump for authentication; a stopped Agent is not a blocker when authentication succeeds. TCP success does not prove authentication, and authentication through ProxyJump does not prove direct TCP reachability. A failure only shows that the current test location cannot connect; it does not prove the IP is banned. Stop and report likely causes instead of switching proxies or replacing the IP automatically.
 - Detect IPv4 and IPv6 based on actual reachability; an assigned address alone does not prove public connectivity.
-- If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, create a fresh self-signed certificate and explain the client identity-verification trade-off.
+- If you provide a domain and control its DNS, try to obtain a trusted ACME certificate by default. Otherwise, a fresh self-signed certificate may be used only with secure client identity verification.
 - Ask which client app(s) the user uses; generate only the corresponding supported profile format(s). Keep client files in a private directory outside the repository.
 - Preserve existing SSH paths, host firewall policy, and unrelated services. In Beginner mode, create or safely reuse `vps` only when the original SSH login user is `root`; otherwise reuse the original account. Expert mode reuses a verified non-root administrator when available. If the initial login is `root` with no independently verifiable non-root SSH administrator, ask whether to create a custom-name administrator, specify and verify an existing account, or pause. Creating requires a validated username, a displayed plan, and separate explicit confirmation. Keep root SSH and the existing sshd password-authentication policy unchanged by default; never enable SSH password authentication as part of account setup. Do not reboot the VPS; keep the sing-box API / Dashboard and third-party panels disabled by default.
 - **Fusion Monster is off by default.** Run it only when explicitly requested in Expert mode; Beginner mode always skips it. A full benchmark can use CPU, disk, and network bandwidth.
@@ -593,6 +595,8 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 
 #### Expert mode: domain endpoint and REALITY target
 
+Beginner mode and expert `none` use the default target: check `gateway.icloud.com` first and evaluate another compatible target only within the user’s authorized scope. If a beginner requests a custom target, ask whether to switch to expert mode; do not apply it without consent. Expert mode requires explicit `reality-custom-target` or `reality-nearby-target` selection; a parameter alone is not authorization, and selecting both stops for a choice. On failure or cancellation preserve the existing target; a new installation may evaluate the default only if the user permits leaving the selected scope, otherwise pause.
+
 Only explicit Expert mode selection of `domain-endpoint` uses a user-controlled domain for authorized client connection addresses. Beginner mode does not ask about or enable these advanced features, and `OPTIONAL_FEATURES=none` enables none of them. Deployment works without an owned domain; providing a domain alone does not enable a REALITY domain endpoint. `domain-endpoint` does not automatically enable `reality-nearby-target` or `reality-custom-target`. The connection domain, REALITY SNI/handshake target, and Hysteria2 certificate domain have distinct purposes; the existing beginner ACME trigger and fallback remain unchanged.
 
 `reality-nearby-target` uses passive public evidence with `same-asn`, `same-prefix24` (IPv4 only), or `auto`, displays at most five candidates, and performs low-frequency TLS checks without scanning an entire subnet. `reality-custom-target` uses a user-specified handshake target. The two target features are mutually exclusive; the domain endpoint can be combined with either and with `ports-high`. Check DNS, TLS 1.3, HTTP/2, certificates, SNI, redirects, CDN and loop risks; shared ASN or prefix does not establish reliability. If no candidate qualifies, preserve the configuration. After explicit selection, show the plan and obtain separate confirmation. Existing nodes are not automatically migrated; DNS and firewall rules are not automatically changed.
@@ -632,6 +636,10 @@ The SVG above is a workflow illustration. The screenshots below were captured du
 - This repository contains agent instructions, not a standalone one-click installer. No network can be guaranteed to work in every environment.
 
 ## 安全说明 / Security
+
+Hysteria2 使用 ACME 时正常验证证书链和主机名；自签时须按所选客户端和版本的官方文档安全导入可信证书/CA，或使用兼容的证书、公钥固定，并通过可信渠道核对信任锚或固定值。验证配置必须匹配实际证书和身份；不能仅凭连接成功声称身份验证成功。不得默认关闭证书验证。如果客户端无法可靠验证自签身份，停止交付该客户端的 HY2 配置，改选支持的客户端或受信任证书；保留 REALITY 和其他可用服务。节点连接地址、REALITY SNI/握手目标、HY2 证书主机名和客户端实际验证身份彼此独立。
+
+For Hysteria2, verify the certificate chain and hostname normally with ACME. For a self-signed certificate, securely install a trusted certificate/CA or use a compatible certificate or public-key pin documented for the selected client and version; authenticate the anchor or pin through a trusted channel. Match the verification configuration to the actual certificate and identity; a connection alone does not prove identity. Never disable verification. If a client cannot reliably verify the self-signed identity, withhold that client's HY2 profile and offer a compatible client or trusted certificate; preserve REALITY and other working services. The connection address, REALITY SNI/handshake target, HY2 certificate hostname, and identity actually verified by the client are distinct. See [sing-box TLS](https://sing-box.sagernet.org/configuration/shared/tls/) and [Mihomo Hysteria2](https://wiki.metacubex.one/en/config/proxies/hysteria2/).
 
 仅在你拥有或明确获准管理的服务器上使用。请在提交前检查提示词、日志和生成文件，确认没有 SSH 密码、私钥、UUID、订阅链接、真实 IP 或其他凭据。客户端配置属于私密凭据，不应公开上传。发现安全问题时，请通过 GitHub 私下联系维护者，不要在公开 Issue 中发布可利用的服务器信息。
 
