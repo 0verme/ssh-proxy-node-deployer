@@ -243,6 +243,9 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 | --- | --- | --- |
 | `ports-high` | 全新安装选择 REALITY TCP/46690、Hysteria2 UDP/46691 | 必须明确选择；任一端口冲突时停止，不自动换端口。 |
 | `ports-443` | 全新安装双 443 默认方案的兼容别名 | 不授权迁移已有节点；与 `ports-high` 同时选择时停止并要求明确选择。 |
+| `domain-endpoint` | 自有域名作为授权的客户端连接地址 | 仅高手模式显式选择；先检查 DNS 和连通性，不改变握手目标。 |
+| `reality-nearby-target` | 被动发现并评估邻近握手目标 | 用户选择并确认；不扫描整个网段。 |
+| `reality-custom-target` | 用户指定握手目标 | 与邻近目标互斥，检查并确认后才变更。 |
 | `fusion-basic` | 融合怪基础检查 | 轻量、限时并关闭上传和重负载测试；运行前会告知基础 IP 查询可能把 VPS 公网 IP 发送给第三方。 |
 | `fusion-full` | 融合怪完整评测 | 会产生 CPU / 磁盘负载和额外流量。 |
 | `firewall-ufw` / `firewall-firewalld` | 配置对应的主机防火墙 | 先检查现有规则并确保 SSH 不会被锁在外面；不会盲目替换现有防火墙。 |
@@ -255,6 +258,21 @@ Agent 默认通过非 root 账户执行远程操作，并按需使用 sudo；roo
 | `third-party-panel` | 第三方面板 | 请同时写出面板名称；先检查资源、安装来源和访问安全。 |
 | `private-subscription` | 私有 HTTPS 订阅 | 需保持访问受控，不放入公开仓库或网页。 |
 | `qr-code` | 客户端配置二维码 | 二维码包含连接凭据，按私密配置文件同等保护。 |
+
+#### 高手模式：域名入口与 REALITY 目标
+
+仅高手模式明确选择 `domain-endpoint` 才将自有域名用作授权的客户端连接地址；新手模式不询问或启用这些高级功能，`OPTIONAL_FEATURES=none` 也不启用。不提供域名仍可部署；仅提供域名不等于启用 REALITY 自有域名入口。域名入口不会自动启用 `reality-nearby-target` 或 `reality-custom-target`。节点连接域名、REALITY SNI/握手目标与 Hysteria2 证书域名是不同用途；新手模式原有 ACME 触发和回退规则不变。
+
+`reality-nearby-target` 按 `same-asn`、`same-prefix24`（仅 IPv4）或 `auto` 从公开被动数据寻找候选，最多展示 5 个并进行低频 TLS 检查，不扫描整个网段。`reality-custom-target` 使用用户指定的握手目标。两者互斥；域名入口可与其中之一及 `ports-high` 组合。检查 DNS、TLS 1.3、HTTP/2、证书、SNI、重定向、CDN 和回环风险；同 ASN 或网段不能证明可靠性。没有合适候选时保持原配置；用户明确选择后，展示计划并单独确认。现有节点不会自动迁移，也不会自动修改 DNS 或防火墙。
+
+示例（逻辑问答参数，并非环境变量解析器）：
+
+```ini
+OPTIONAL_FEATURES=domain-endpoint,reality-nearby-target
+ENDPOINT_DOMAIN=node.example.com
+REALITY_TARGET_MODE=nearby
+REALITY_NEARBY_SCOPE=auto
+```
 
 ### 图片与实际测试
 
@@ -555,6 +573,9 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 | --- | --- | --- |
 | `ports-high` | Select REALITY TCP/46690 and Hysteria2 UDP/46691 for a new installation | Explicit selection required; stop on either conflict without automatic replacement. |
 | `ports-443` | Compatibility alias for the new-installation dual-443 default | Does not authorize migration of existing nodes; selecting it with `ports-high` stops and requires an explicit choice. |
+| `domain-endpoint` | User-controlled domain for authorized client connection addresses | Explicit Expert selection; check DNS and reachability without changing the handshake target. |
+| `reality-nearby-target` | Passively discover and assess nearby handshake targets | User selection and confirmation required; no whole-subnet scan. |
+| `reality-custom-target` | User-specified handshake target | Mutually exclusive with nearby discovery; check and confirm before changes. |
 | `fusion-basic` | Basic Fusion Monster check | Time-limited, with uploads and heavy suites disabled. Basic IP lookups may send the VPS public IP to third parties; the agent will tell you before running it. |
 | `fusion-full` | Full Fusion Monster benchmark | Adds CPU/disk load and network traffic. |
 | `firewall-ufw` / `firewall-firewalld` | Configure the named host firewall | Check existing rules and preserve SSH access; do not blindly replace an existing firewall. |
@@ -567,6 +588,21 @@ Omit this line or write `Optional features: none` to keep the default profile wi
 | `third-party-panel` | A third-party panel | Name the panel; check resources, installation source, and access security first. |
 | `private-subscription` | Private HTTPS subscription | Keep access controlled and out of public repositories and pages. |
 | `qr-code` | Client configuration QR codes | QR codes contain credentials; protect them like private client files. |
+
+#### Expert mode: domain endpoint and REALITY target
+
+Only explicit Expert mode selection of `domain-endpoint` uses a user-controlled domain for authorized client connection addresses. Beginner mode does not ask about or enable these advanced features, and `OPTIONAL_FEATURES=none` enables none of them. Deployment works without an owned domain; providing a domain alone does not enable a REALITY domain endpoint. `domain-endpoint` does not automatically enable `reality-nearby-target` or `reality-custom-target`. The connection domain, REALITY SNI/handshake target, and Hysteria2 certificate domain have distinct purposes; the existing beginner ACME trigger and fallback remain unchanged.
+
+`reality-nearby-target` uses passive public evidence with `same-asn`, `same-prefix24` (IPv4 only), or `auto`, displays at most five candidates, and performs low-frequency TLS checks without scanning an entire subnet. `reality-custom-target` uses a user-specified handshake target. The two target features are mutually exclusive; the domain endpoint can be combined with either and with `ports-high`. Check DNS, TLS 1.3, HTTP/2, certificates, SNI, redirects, CDN and loop risks; shared ASN or prefix does not establish reliability. If no candidate qualifies, preserve the configuration. After explicit selection, show the plan and obtain separate confirmation. Existing nodes are not automatically migrated; DNS and firewall rules are not automatically changed.
+
+Example (logical Q&A parameters, not an environment-variable parser):
+
+```ini
+OPTIONAL_FEATURES=domain-endpoint,reality-nearby-target
+ENDPOINT_DOMAIN=node.example.com
+REALITY_TARGET_MODE=nearby
+REALITY_NEARBY_SCOPE=auto
+```
 
 ### Screenshots and real-world validation
 
