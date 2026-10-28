@@ -20,3 +20,8 @@ These are mock scenarios for reviewing an instruction contract, not executed net
 | D14 | Endpoint with ports-high | Preserve high-port selection; neither feature authorizes migration. |
 | D15 | Mock five eligible candidates and one extra | Display at most five; no automatic selection. |
 | D16 | Custom target accepted and plan confirmed | Validate version-specific sing-box schema and client pairing before any authorized write. |
+| D17 | Expert nearby workflow finds eligible same-ASN target | Show evidence and await selection; do not auto-switch. |
+| D18 | No same-ASN or applicable auto prefix candidate | Preserve target; ask before checking major-provider HTTPS domains. |
+| D19 | Major-provider candidates fail; user offers owned domain resolving to REALITY listener | Reject loop, preserve configuration and ask for another target or pause. |
+| D20 | All tiers fail or user cancels; new install has no target | Keep existing target or pause new installation; no automatic fallback. |
+| D21 | User explicitly selects same-prefix24 or none | Preserve selected scope or default behavior; do not launch the ordered workflow implicitly. |

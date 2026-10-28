@@ -27,11 +27,14 @@ class DomainRealityContractTests(unittest.TestCase):
     def test_choice_failure_and_existing_nodes(self):
         self.require("keep the existing configuration and target", "explicitly choose a nearby candidate", "require explicit confirmation before any write", "Cancellation or no confirmation", "Existing nodes are never migrated", "separate explicit request")
 
+    def test_ordered_candidate_workflow_is_opt_in_and_confirmed(self):
+        self.require("explicitly chooses the expert nearby-target workflow", "(1) discover same-ASN", "(2) if none qualifies", "(3) if those do not qualify", "Ask before moving to the major-provider or user-owned alternative", "sequential mode transition", "not automatic failover", "Reject any target whose resolution or routing can loop back", "preserve the current configuration", "for a new installation without an existing target", "separately confirmed change plan", "`none`, beginner mode and default target behavior remain unchanged", "do not silently broaden or override it")
+
     def test_version_specific_fields(self):
         self.require("`reality.handshake.server` / `reality.handshake.server_port`", "do not copy Xray fields", "installed version", "validate the client/server pairing")
 
     def test_simulated_acceptance_scenarios_are_present(self):
-        self.assertEqual({f"D{i:02d}" for i in range(1, 17)}, set(re.findall(r"^\| (D\d{2}) \|", MATRIX, re.M)))
+        self.assertEqual({f"D{i:02d}" for i in range(1, 22)}, set(re.findall(r"^\| (D\d{2}) \|", MATRIX, re.M)))
         for evidence in ("192.0.2.10", "mock ASN unavailable", "certificate mismatch", "user cancels", "at most five"):
             self.assertIn(evidence, MATRIX)
 
